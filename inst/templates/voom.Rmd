@@ -1,0 +1,210 @@
+# Model fitting
+
+The voom method uses the empirical mean-variance trend to compute a weight for each observation. 
+In this manner, log-CPMs derived from low counts are downweighted to reflect their lower precision.
+:BEGIN sample-weight-text
+We estimate sample-specific quality weights to reduce the impact of outlier replicates without resorting to their removal.
+:END
+:BEGIN duplicate-correlation
+We use `duplicateCorrelation()` to account for correlations between samples with the same level of blocking factor.
+
+```{r duplicate-correlation, fig.wide=TRUE}
+library(limma)
+dc.block <- factor(SummarizedExperiment::colData(se)[[<%= DUPCOR_BLOCK %>]])
+
+# Iteratively refine the precision weights after estimating the correlation. 
+v <- limma::<%= VOOM_CMD %>(y, design=design, plot=FALSE)
+dc <- limma::duplicateCorrelation(v, design=design, block=dc.block)
+v <- limma::<%= VOOM_CMD %>(y, design=design, plot=TRUE, block=dc.block, 
+    correlation=dc$consensus.correlation)
+dc <- limma::duplicateCorrelation(v, design=design, block=dc.block)
+
+dc$consensus.correlation
+```
+:END
+
+:BEGIN vanilla-voom
+```{r voom}
+library(limma)
+v <- <%= VOOM_CMD %>(y, design=design, plot=TRUE)
+```
+:END
+
+Once the precision weights are computed, we fit the linear model for each gene. 
+
+```{r}
+# 'design' is implicitly passed via 'v'.
+fit <- lmFit(v<%= EXTRA_LM_ARGS %>)
+```
+
+This is followed by empirical Bayes shrinkage, which shares information across genes to stabilize the variance estimates.
+The estimated prior degrees of freedom (d.f.) represents the variability of the variances across genes, typically ranging from 5 to 20.
+Large values indicate that the variances were consistent across features, allowing us to perform more aggressive shrinkage for greater power.
+:BEGIN robust-text
+We enable robustification to ensure that highly variable genes (or very small variances at discrete low counts) do not deflate the prior degrees of freedom.
+:END
+
+```{r}
+summary(fit$df.prior)
+```
+
+We can also examine the mean-variance relationship for the shrunk estimates.
+Ideally, there should be no trend at all as it should have been handled by the observation weights.
+
+```{r, fig.cap="Residual standard deviation (sigma) plotted against the mean log-CPM. Each point represents a gene<%= EXTRA_EB_CAPT %>."}
+fit <- eBayes(fit<%= EXTRA_EB_ARGS %>)
+plotSA(fit)
+```
+
+# Performing contrasts
+
+## Setup
+
+We define a list to hold the result from each contrast.
+
+```{r}
+all.results <- list()
+```
+
+We create a directory in which to save the results to disk.
+
+```{r save-directory}
+result.dir <- "results"
+dir.create(result.dir)
+```
+
+:BEGIN create-common-metadata
+We some common metadata to add to each result.
+
+```{r}
+common.meta <- <%= COMMON_METADATA %>
+```
+:END
+
+:BEGIN contrast
+
+## <%= CONTRAST_NAME_SIMPLE %>
+
+The contrast is a vector or matrix specifying the null hypothesis in terms of the design matrix's coefficients.
+Given a contrast `con`, the null hypothesis for gene `i` is that the expectation of `sum(fit$coefficients[i,,drop=FALSE] %*% con)` is an all-zero vector.
+
+```{r}
+:BEGIN contrast-command
+:END
+con
+```
+
+:BEGIN lfc-contrast
+For single contrasts, we can focus on genes with larger effect sizes by using `treat()` to test for significant differences from a log-fold change threshold.
+
+```{r test-<%= CONTRAST_CHUNK_NAME %>}
+fit2 <- limma::contrasts.fit(fit, con)
+fit2 <- limma::treat(fit2, lfc=<%= LFC_THRESHOLD %><%= EXTRA_EB_ARGS %>)
+```
+:END
+
+:BEGIN no-lfc-contrast
+We perform moderated $t$-tests to identify significant deviations from the null hypothesis.
+
+```{r test-<%= CONTRAST_CHUNK_NAME %>}
+fit2 <- limma::contrasts.fit(fit, con)
+fit2 <- limma::eBayes(fit2<%= EXTRA_EB_ARGS %>)
+```
+:END
+
+We retrieve a table of per-gene DE statistics:
+
+```{r}
+tab <- topTable(fit2, n=Inf, sort.by="none")
+tab[head(order(tab$P.Value)),]
+```
+
+We report summary statistics for this comparison, defining significant differences at a FDR threshold of 5%.
+
+```{r, eval=is.null(dim(con)), echo=is.null(dim(con))}
+summary(limma::decideTests(fit2))
+```
+
+```{r, eval=!is.null(dim(con)), echo=!is.null(dim(con))}
+summary(tab$FDR <= 0.05)
+```
+
+Now making some diagnostic plots.
+
+```{r, fig.cap='Mean-difference plot for this contrast. Each point represents a gene and is colored according to whether it was significantly up- or down-regulated at an FDR of 5%.', eval=is.null(dim(con)), echo=is.null(dim(con))}
+limma::plotMD(fit2, status=decideTests(fit2), hl.cex=0.5)
+```
+
+```{r, fig.cap='Volcano plot for this contrast. Each point represents a gene, colored according to whether it was significantly up- or down-regulated at an FDR of 5%. The dotted line represents the effective $p$-value threshold for significance.', eval=is.null(dim(con)), echo=is.null(dim(con))}
+volcanoplot(fit2)
+is.de <- tab$FDR <= 0.05
+if (any(is.de, na.rm=TRUE)) {
+    eff.thresh <- max(tab$PValue[is.de], na.rm=TRUE)
+    abline(h=-log10(eff.thresh), lty=2, col='red')
+}
+```
+
+We expand the result table to restore the full set of rows in our original `SummarizedExperiment`.
+Low-abundance genes are assigned `NA` statistics, to distinguish them from genes that were not present in the annotation at all.
+
+```{r}
+de.df <- S4Vectors::DataFrame(tab)
+de.df <- de.df[match(seq_len(nrow(se)), de.df$origin),]
+de.df$origin <- NULL
+rownames(de.df) <- rownames(se)
+:BEGIN attach-annotation
+:END
+```
+
+We also give nicer names to some of the columns: 
+
+```{r}
+colnames(deres)[colnames(deres) == "P.Value"] <- "PValue"
+colnames(deres)[colnames(deres) == "adj.P.Val"] <- "FDR"
+
+```{r, eval=is.null(dim(con)), echo=is.null(dim(con))}
+colnames(deres)[colnames(deres) == "logFC"] <- "LogFC"
+```
+
+```{r, eval=!is.null(dim(con)), echo=!is.null(dim(con))}
+expected <- make.names(colnames(con))
+m <- match(expected, colnames(deres))
+stopifnot(!anyNA(m), !anyDuplicated(m))
+colnames(deres)[m] <- paste0("LogFC.", colnames(con))
+```
+
+We store the results in our output list.
+
+```{r}
+all.results[[<%= CONTRAST_NAME_DEPARSED %>]] <- df
+```
+
+We also save them to file with some metadata describing what's going on.
+
+```{r <%= SAVING_CHUNK_NAME %>}
+de.meta <- list(
+    title=<%= DEPARSED_CONTRAST_NAME %>,
+    authors=<%= AUTHOR %>,
+    type="differential_gene_expression",
+    differential_gene_expression=list(
+:BEGIN diff-result-metadata
+:END
+:BEGIN subset-result-metadata
+:END
+        method="voom-limma"
+    )
+)
+:BEGIN merge-metadata-diff
+
+de.meta <- c(common.meta, de.meta)
+de.meta <- de.meta[!duplicated(names(de.meta))]
+:END
+
+augere.diff::saveObject(
+    de.df,
+    file.path(result.dir, paste0("de-", length(all.results))),
+    metadata=de.meta
+)
+```
+
+:END contrast

@@ -1,0 +1,28 @@
+Package: augere.de
+Version: 0.99.0
+Date: 2025-11-12
+Title: Automatic Generation of Differential Expression Analyses
+Description:
+    Implements pipelines for generating differential expression analysis reports in the augere framework.
+    This includes analyses with edgeR and with voom-limma.
+Authors@R: person("Aaron", "Lun", role=c("cre", "aut"), email="infinite.monkeys.with.keyboards@gmail.com")
+License: MIT + file LICENSE
+Imports:
+    utils,
+    grDevices,
+    limma,
+    edgeR,
+    augere.core,
+    alabaster.base,
+    alabaster.se,
+    jsonlite
+Suggests:
+    testthat,
+    knitr,
+    rmarkdown,
+    BiocStyle,
+    airway,
+    SummarizedExperiment
+VignetteBuilder: knitr    
+RoxygenNote: 7.3.3
+Encoding: UTF-8

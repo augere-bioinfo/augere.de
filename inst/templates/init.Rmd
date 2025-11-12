@@ -1,0 +1,129 @@
+---
+title: <%= TITLE %>
+author: <%= AUTHOR %>
+date: "`r Sys.Date()`"
+output: BiocStyle::html_document
+---
+
+```{r preamble, echo=FALSE}
+knitr::opts_chunk$set(error=FALSE, warning=FALSE, message=FALSE)
+```
+
+# Data loading
+
+<%= INTRODUCTION %>
+Our `SummarizedExperiment` object contains all experimental data and metadata for this study.
+Each row corresponds to a gene while each column corresponds to a sample.
+
+```{r} 
+:BEGIN create-se
+:END
+se
+```
+
+:BEGIN subset-se
+We subset the `SummarizedExperiment` to the desired levels of a factor of interest.
+
+```{r}
+sub.factor <- <%= SUBSET_FACTOR %>
+sub.levels <- <%= SUBSET_LEVELS %>
+se <- se[,SummarizedExperiment::colData(se)[,sub.factor] %in% sub.levels]
+subset.meta <- sprintf("%s IN (%s)", sub.factor, paste(sub.levels, collapse=","))
+ncol(se)
+```
+:END
+
+:BEGIN subset-group
+We subset the `SummarizedExperiment` to the groups involved in the comparison.
+This ensures that our variance estimates are not affected by irrelevant variability in other groups.
+
+```{r}
+se <- se[,SummarizedExperiment::colData(se)[,<%= GROUP_FACTOR %>] %in% <%= GROUP_LEVELS %>]
+ncol(se)
+```
+:END
+
+We move extract the information into a `DGEList` object in preparation for analysis.
+
+```{r}
+y <- edgeR::DGEList(SummarizedExperiment::assay(se, <%= ASSAY %>))
+
+# Also tracking the original row index from the SummarizedExperiment,
+# so that we can match them up after filtering out low-abundance genes.
+y$genes <- data.frame(origin=seq_len(nrow(se)))
+```
+
+Finally, we build the design matrix.
+
+```{r}
+:BEGIN design-matrix
+:END
+```
+
+# Gene filtering
+
+We filter out low-abundance genes to improve the accuracy of the mean-variance trend fit.
+This also reduces computational work and the severity of the multiple testing correction.
+We use `r BiocStyle::Biocpkg("edgeR")`'s default filtering strategy,
+which only retains genes with coverage above a threshold in at least $n$ samples.
+
+```{r}
+filtered <- edgeR::filterByExpr(y, <%= FILTER_ARGS %>, large.n=0)
+summary(filtered)
+y <- y[filtered,]
+```
+
+The minimum threshold is defined as a CPM equivalent to a count of 10, adjusted for differences in library size.
+$n$ is defined as 70% of the size of the smallest group in the experimental design.
+(We set `large.n=0` to allow a gene to be below the threshold in some of the samples of a small group.) 
+
+# Normalization
+
+We use the trimmed mean of M-values (TMM) algorithm to normalize scaling biases between samples.
+The assumption is that most genes not exhibit any differences between samples; 
+any systematic differences across many genes are assumed to be technical and removed.
+
+```{r}
+y <- edgeR::calcNormFactors(y)
+head(y$samples, 10)
+```
+
+The TMM normalization factors go beyond library size normalization by accounting for composition biases.
+These biases are introduced by differential expression where upregulated genes outcompete others for sequencing resources, resulting in slightly incorrect log-fold changes and/or spurious DE. 
+`r BiocStyle::Biocpkg("edgeR")` handles this by computing effective library sizes (scaled by `norm.factors`) representing the combined effect of library size differences and composition biases.
+
+```{r}
+barplot(y$samples$norm.factors)
+```
+
+We the normalization results by creating MD (mean-difference) plots.
+Ideally, the log-fold changes for most genes should be centered around zero if the normalization was successful.
+
+```{r, fig.wide=TRUE, fig.asp=1/3, fig.cap="Mean-difference plots for each sample against the average reference of all other samples. Each plot corresponds to a sample while each point represents a gene."}
+lcpm <- edgeR::cpm(y, log=TRUE, prior.count=3)
+n <- ncol(lcpm)
+par(mfrow=c(1, 3), mar=c(5.1, 4.1, 4.1, 0.1))
+for (i in seq_len(min(9, n))) { # avoid spewing out more than 9 plots.
+    limma::plotMD(lcpm, column=i)
+    abline(h=0, col='red', lty=2)
+}
+```
+
+# Dimensionality reduction
+
+To get an overview of our dataset, we create a multi-dimensional scaling (MDS) plot.
+Samples that are closer together on the plot are more similar in their expression profiles -
+or more specifically, the most extreme log-fold changes are closer to zero.
+
+```{r, fig.cap="MDS plot of the dataset. Each point represents a sample and is colored according to its group(s) of origin."}
+:BEGIN mds-relabel
+# Manufacturing labels from the design matrix (sans the intercept).
+design0 <- design[,colMeans(design==1) != 1,drop=FALSE]
+labels <- factor(apply(design0, 1, function(x) {
+    paste(collapse='.', colnames(design0)[x != 0])
+}))
+
+:END mds-no-group
+lcpm <- edgeR::cpm(y, log=TRUE, prior.count=3)
+limma::plotMDS(lcpm, labels=labels, col=as.integer(labels))
+```

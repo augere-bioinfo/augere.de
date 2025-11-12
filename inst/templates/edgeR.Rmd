@@ -1,0 +1,189 @@
+# GLM fitting
+
+`r BiocStyle::Biocpkg("edgeR")`'s quasi-likelihood (QL) framework fits the generalized linear models (GLMs) and estimates relevant dispersion parameters in a single step.
+The GLM coefficients quantify the contribution of the model factors for each gene, while the dispersions quantify the variability across replicates.
+
+```{r}
+fit <- edgeR::glmQLFit(y, design<%= QL_ARGS %>)
+```
+
+Specifically, there are two sets of dispersion parameters - the negative binomial (NB) and the QL dispersions.
+For the NB dispersion, a common value is estimated from the most abundant genes and used to parametrize the NB distribution for all genes.
+This aims to capture the mean-variance relationship and make life easier for the QL dispersion estimates.
+In general, we expect low NB dispersions (<0.05) for controlled lab experiments but higher values (> 0.5) for patient data.
+
+```{r}
+fit$dispersion
+```
+
+The QL dispersions are more interesting and capture the variability specific to each gene.
+As there is not enough information per gene, empirical Bayes shrinkage is applied to reduce the estimation uncertainty.
+The prior degrees of freedom (d.f.) represent the magnitude of this shrinkage, typically around 5 - 20.
+Larger prior d.f. indicate that the QL dispersions are more consistent across genes, allowing for more aggressive shrinkage and greater detection power.
+:BEGIN robust-eb-text
+We enable robustification to ensure that highly variable genes (or very small variances at discrete low counts) do not deflate the prior degrees of freedom.
+:END
+
+```{r}
+summary(fit$df.prior)
+```
+
+In practice, the QL dispersion estimates are squeezed towards a mean-dependent trend to accommodate non-NB mean-variance relationships.
+
+```{r, fig.cap='Mean-dependent trend in the QL dispersions. Each point represents its raw (black) or shrunken QL dispersion estimate (red) for each gene. Dispersions are quarter-root-transformed for clarity.'}
+edgeR::plotQLDisp(fit)
+```
+
+# Performing contrasts
+
+## Setup
+
+We define a list to hold the result from each contrast.
+
+```{r}
+all.results <- list()
+```
+
+We create a directory in which to save the results to disk.
+
+```{r save-directory}
+result.dir <- "results"
+dir.create(result.dir)
+```
+
+:BEGIN create-common-metadata
+We some common metadata to add to each result.
+
+```{r}
+common.meta <- <%= COMMON_METADATA %>
+```
+:END
+
+:BEGIN contrast
+
+## <%= CONTRAST_NAME_SIMPLE %>
+
+The contrast is a vector or matrix specifying the null hypothesis in terms of the design matrix's coefficients.
+Given a contrast `con`, the null hypothesis for gene `i` is that the expectation of `sum(fit$coefficients[i,,drop=FALSE] %*% con)` is an all-zero vector.
+
+```{r}
+:BEGIN contrast-command
+:END
+con
+```
+
+:BEGIN treat
+We use `glmTreat()` to identify genes where the magnitude of the log-fold change is significantly greater than some threshold.
+This focuses on genes with larger effect sizes at the expense of those with low variability.
+
+```{r}
+res <- edgeR::glmTreat(fit, contrast=con, lfc=<%= LFC_THRESHOLD %>)
+```
+:END
+
+:BEGIN regular
+We perform a QL F-test to idenfity significant deviations from the null hypothesis.
+
+```{r}
+res <- edgeR::glmQLFTest(fit, contrast=con)
+```
+:END
+
+We convert this into a table for easier perusal:
+
+```{r}
+tab <- edgeR::topTags(res, n=Inf, sort.by="none")$table
+tab[head(order(tab$PValue), n=10),]
+```
+
+We report summary statistics for this comparison, defining significant differences at a FDR threshold of 5%.
+
+```{r}
+summary(edgeR::decideTests(res))
+```
+
+```{r, fig.cap='Mean-difference plot for this contrast. Each point represents a gene and is colored according to whether it was significantly up- or down-regulated at an FDR of 5%.', eval=is.null(dim(con)), echo=is.null(dim(con))}
+limma::plotMD(res)
+```
+
+```{r, fig.cap='Volcano plot for this contrast. Each point represents a gene, colored according to whether it was significantly up- or down-regulated at an FDR of 5%. The dotted line represents the effective $p$-value threshold for significance.', eval=is.null(dim(con)), echo=is.null(dim(con))}
+X <- tab$logFC
+Y <- -log10(tab$PValue)
+plot(X, Y, xlab='Log-fold change', ylab='-Log(PValue)')
+
+is.de <- tab$FDR <= 0.05
+is.up <- is.de & tab$logFC > 0
+points(X[is.up], Y[is.up], col='red')
+is.down <- is.de & tab$logFC < 0
+points(X[is.down], Y[is.down], col='blue')
+
+if (any(is.de, na.rm=TRUE)) {
+    eff.thresh <- max(tab$PValue[is.de], na.rm=TRUE)
+    abline(h=-log10(eff.thresh), lty=2, col='red')
+}
+```
+
+We expand the result table to restore the full set of rows in our original `SummarizedExperiment`.
+Low-abundance genes are assigned `NA` statistics, to distinguish them from genes that were not present in the annotation at all.
+
+```{r}
+de.df <- S4Vectors::DataFrame(tab)
+de.df <- de.df[match(seq_len(nrow(se)), de.df$origin),]
+de.df$origin <- NULL
+rownames(de.df) <- rownames(se)
+:BEGIN attach-annotation
+:END
+```
+
+We also give nicer names to some of the columns: 
+
+```{r}
+colnames(de.df)[colnames(de.df) == "logCPM"] <- "AveExpr"
+```
+
+```{r, eval=is.null(dim(con)), echo=is.null(dim(con))}
+colnames(de.df)[colnames(de.df) == "logFC"] <- "LogFC"
+```
+
+```{r, eval=!is.null(dim(con)), echo=!is.null(dim(con))}
+expected <- make.names(paste0("logFC.", colnames(con)))
+m <- match(expected, colnames(de.df))
+stopifnot(!anyNA(m), !anyDuplicated(m))
+colnames(de.df)[m] <- paste0("LogFC.", colnames(con))
+```
+
+We store the results in our output list.
+
+```{r}
+all.results[[<%= CONTRAST_NAME_DEPARSED %>]] <- df
+```
+
+We also save them to file with some metadata describing what's going on.
+
+```{r <%= SAVING_CHUNK_NAME %>}
+de.meta <- list(
+    title=<%= DEPARSED_CONTRAST_NAME %>,
+    authors=<%= AUTHOR %>,
+    type="differential_gene_expression",
+    differential_gene_expression=list(
+:BEGIN diff-result-metadata
+:END
+:BEGIN subset-result-metadata
+:END
+        method="edgeR QL"
+    )
+)
+:BEGIN merge-metadata-diff
+
+de.meta <- c(common.meta, de.meta)
+de.meta <- de.meta[!duplicated(names(de.meta))]
+:END
+
+augere.diff::saveObject(
+    de.df,
+    file.path(result.dir, paste0("de-", length(all.results))),
+    metadata=de.meta
+)
+```
+
+:END contrast
