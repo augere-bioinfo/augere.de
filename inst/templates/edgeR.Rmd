@@ -4,7 +4,7 @@
 The GLM coefficients quantify the contribution of the model factors for each gene, while the dispersions quantify the variability across replicates.
 
 ```{r}
-fit <- edgeR::glmQLFit(y, design<%= QL_ARGS %>)
+fit <- edgeR::glmQLFit(y, design<%= QL_OPTS %>)
 ```
 
 Specifically, there are two sets of dispersion parameters - the negative binomial (NB) and the QL dispersions.
@@ -67,7 +67,7 @@ The contrast is a vector or matrix specifying the null hypothesis in terms of th
 Given a contrast `con`, the null hypothesis for gene `i` is that the expectation of `sum(fit$coefficients[i,,drop=FALSE] %*% con)` is an all-zero vector.
 
 ```{r}
-:BEGIN contrast-command
+:BEGIN setup-contrast
 :END
 con
 ```
@@ -77,7 +77,7 @@ We use `glmTreat()` to identify genes where the magnitude of the log-fold change
 This focuses on genes with larger effect sizes at the expense of those with low variability.
 
 ```{r}
-res <- edgeR::glmTreat(fit, contrast=con, lfc=<%= LFC_THRESHOLD %>)
+res <- edgeR::glmTreat(fit, contrast=con, lfc=<%= THRESHOLD %>)
 ```
 :END
 
@@ -162,18 +162,18 @@ We also save them to file with some metadata describing what's going on.
 
 ```{r <%= SAVING_CHUNK_NAME %>}
 de.meta <- list(
-    title=<%= DEPARSED_CONTRAST_NAME %>,
+    title=<%= CONTRAST_NAME_DEPARSED %>,
     authors=<%= AUTHOR %>,
     type="differential_gene_expression",
     differential_gene_expression=list(
-:BEGIN diff-result-metadata
+:BEGIN diff-metadata
 :END
-:BEGIN subset-result-metadata
+:BEGIN subset-metadata
 :END
         method="edgeR QL"
     )
 )
-:BEGIN merge-metadata-diff
+:BEGIN merge-metadata
 
 de.meta <- c(common.meta, de.meta)
 de.meta <- de.meta[!duplicated(names(de.meta))]

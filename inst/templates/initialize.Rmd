@@ -1,5 +1,5 @@
 ---
-title: <%= TITLE %>
+title: Differential expression with <%= METHOD %>
 author: <%= AUTHOR %>
 date: "`r Sys.Date()`"
 output: BiocStyle::html_document
@@ -11,7 +11,6 @@ knitr::opts_chunk$set(error=FALSE, warning=FALSE, message=FALSE)
 
 # Data loading
 
-<%= INTRODUCTION %>
 Our `SummarizedExperiment` object contains all experimental data and metadata for this study.
 Each row corresponds to a gene while each column corresponds to a sample.
 
@@ -68,7 +67,7 @@ We use `r BiocStyle::Biocpkg("edgeR")`'s default filtering strategy,
 which only retains genes with coverage above a threshold in at least $n$ samples.
 
 ```{r}
-filtered <- edgeR::filterByExpr(y, <%= FILTER_ARGS %>, large.n=0)
+filtered <- edgeR::filterByExpr(y, <%= FILTER_OPTS %>, large.n=0)
 summary(filtered)
 y <- y[filtered,]
 ```
@@ -123,7 +122,7 @@ labels <- factor(apply(design0, 1, function(x) {
     paste(collapse='.', colnames(design0)[x != 0])
 }))
 
-:END mds-no-group
+:END
 lcpm <- edgeR::cpm(y, log=TRUE, prior.count=3)
 limma::plotMDS(lcpm, labels=labels, col=as.integer(labels))
 ```

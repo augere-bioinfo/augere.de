@@ -2,7 +2,7 @@
 
 The voom method uses the empirical mean-variance trend to compute a weight for each observation. 
 In this manner, log-CPMs derived from low counts are downweighted to reflect their lower precision.
-:BEGIN sample-weight-text
+:BEGIN quality-text
 We estimate sample-specific quality weights to reduce the impact of outlier replicates without resorting to their removal.
 :END
 :BEGIN duplicate-correlation
@@ -23,7 +23,7 @@ dc$consensus.correlation
 ```
 :END
 
-:BEGIN vanilla-voom
+:BEGIN voom
 ```{r voom}
 library(limma)
 v <- <%= VOOM_CMD %>(y, design=design, plot=TRUE)
@@ -34,7 +34,7 @@ Once the precision weights are computed, we fit the linear model for each gene.
 
 ```{r}
 # 'design' is implicitly passed via 'v'.
-fit <- lmFit(v<%= EXTRA_LM_ARGS %>)
+fit <- lmFit(v<%= LM_OPTS %>)
 ```
 
 This is followed by empirical Bayes shrinkage, which shares information across genes to stabilize the variance estimates.
@@ -52,7 +52,7 @@ We can also examine the mean-variance relationship for the shrunk estimates.
 Ideally, there should be no trend at all as it should have been handled by the observation weights.
 
 ```{r, fig.cap="Residual standard deviation (sigma) plotted against the mean log-CPM. Each point represents a gene<%= EXTRA_EB_CAPT %>."}
-fit <- eBayes(fit<%= EXTRA_EB_ARGS %>)
+fit <- eBayes(fit<%= EB_OPTS %>)
 plotSA(fit)
 ```
 
@@ -99,7 +99,7 @@ For single contrasts, we can focus on genes with larger effect sizes by using `t
 
 ```{r test-<%= CONTRAST_CHUNK_NAME %>}
 fit2 <- limma::contrasts.fit(fit, con)
-fit2 <- limma::treat(fit2, lfc=<%= LFC_THRESHOLD %><%= EXTRA_EB_ARGS %>)
+fit2 <- limma::treat(fit2, lfc=<%= LFC_THRESHOLD %><%= EB_OPTS %>)
 ```
 :END
 
@@ -108,7 +108,7 @@ We perform moderated $t$-tests to identify significant deviations from the null 
 
 ```{r test-<%= CONTRAST_CHUNK_NAME %>}
 fit2 <- limma::contrasts.fit(fit, con)
-fit2 <- limma::eBayes(fit2<%= EXTRA_EB_ARGS %>)
+fit2 <- limma::eBayes(fit2<%= EB_OPTS %>)
 ```
 :END
 
