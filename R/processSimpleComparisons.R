@@ -50,13 +50,13 @@
 #' \code{\link{processCustomContrasts}}, to define more complex custom contrasts.
 #'
 #' @examples
-#' processSimpleComparisons(c("Disease", "Normal"))
-#' processSimpleComparisons("AGE")
-#' processSimpleComparisons(c("Disease", "Treated", "Normal"))
-#' processSimpleComparisons(c("Disease", NA, "Treated", "Normal"))
+#' processSimpleComparisons(c("disease", "healthy"))
+#' processSimpleComparisons("dosage")
+#' processSimpleComparisons(c("untreated", "treated", "healthy"))
+#' processSimpleComparisons(c("treatment1", "treatment2", NA, "healthy"))
 #' processSimpleComparisons(list(
-#'     main=c("Disease", "Normal"),
-#'     secondary="AGE"
+#'     main=c("disease", "healthy"),
+#'     secondary="dosage"
 #' ))
 #'
 #' @export
