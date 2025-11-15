@@ -13,7 +13,6 @@ Imports:
     limma,
     edgeR,
     augere.core,
-    alabaster.base,
     alabaster.se,
     jsonlite
 Suggests:

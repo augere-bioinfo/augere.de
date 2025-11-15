@@ -173,16 +173,16 @@ de.meta <- list(
         method="edgeR QL"
     )
 )
-:BEGIN merge-metadata
 
-de.meta <- c(common.meta, de.meta)
-de.meta <- de.meta[!duplicated(names(de.meta))]
-:END
-
-augere.diff::saveObject(
+augere.core::saveResult(
     de.df,
     file.path(result.dir, paste0("de-", length(all.results))),
+:BEGIN merge-metadata
+    metadata=c(common.meta, de.meta)
+:END
+:BEGIN no-merge-metadata
     metadata=de.meta
+:END
 )
 ```
 

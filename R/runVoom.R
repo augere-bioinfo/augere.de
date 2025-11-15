@@ -165,6 +165,8 @@ runVoom <- function(
         }
         if (!merge.metadata) {
             copy[["merge-metadata"]] <- NULL
+        } else {
+            copy[["no-merge-metadata"]] <- NULL
         }
 
         save.name <- paste0("save-de", i)

@@ -23,16 +23,16 @@ norm.meta <- list(
     authors=<%= AUTHOR %>,
     type="summarized_experiment"
 )
-:BEGIN merge-metadata-norm
-
-norm.meta <- c(common.meta, norm.meta)
-norm.meta <- norm.meta[!duplicated(names(norm.meta))]
-:EN
 
 augere.diff::saveObject(
     norm.se,
     file.path(result.dir, "se"), 
+:BEGIN merge-metadata
+    metadata=c(common.meta, norm.meta)
+:END
+:BEGIN no-merge-metadata
     metadata=norm.meta
+:END
 )
 ```
 
