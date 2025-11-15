@@ -54,14 +54,11 @@
         }
         parsed[["mds-relabel"]] <- "labels <- variables$group."
 
+        group.levels <- NULL
         if (subset.groups && length(all.groups)) {
-            not.grouped <- vapply(contrast.info, function(con) con$type %in% c("single", "other"), TRUE)
-            group.levels <- NULL
-            if (!any(not.grouped)) {
-                all.groups <- lapply(contrast.info, function(con) con[c("left_groups", "right_groups", "anova_groups")])
-                group.levels <- sort(unique(unlist(all.groups)))
-            }
-
+            group.levels <- .find_used_groups(contrast.info)
+        }
+        if (!is.null(group.levels)) {
             parsed[["subset-group"]] <- replacePlaceholders(
                 parsed[["subset-group"]],
                 list(
@@ -78,4 +75,14 @@
         text=replacePlaceholders(parsed, replacements),
         contrasts=contrast.info
     )
+}
+
+.find_used_groups <- function(contrast.info) {
+    not.grouped <- vapply(contrast.info, function(con) con$type %in% c("covariate", "custom"), TRUE)
+    group.levels <- NULL
+    if (!any(not.grouped)) {
+        all.groups <- lapply(contrast.info, function(con) con[c("left", "right", "groups")])
+        group.levels <- sort(unique(unlist(all.groups)))
+    }
+    group.levels
 }
