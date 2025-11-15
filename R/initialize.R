@@ -1,8 +1,7 @@
 #' @import augere.core 
 .initialize <- function(
-    method,
-    author,
     x,
+    method,
     assay,
     groups, 
     comparisons, 
@@ -12,17 +11,18 @@
     subset.levels,
     subset.groups,
     design,
-    contrasts
+    contrasts,
+    author
 ) {
-    template <- system.file("templates", "init.Rmd", package="augere.de", mustWork=TRUE)
+    template <- system.file("templates", "initialize.Rmd", package="augere.de", mustWork=TRUE)
     parsed <- parseRmdTemplate(readLines(template))
 
-    parsed[["create-se"]] <- processInputCommands(x, obj="se")
+    parsed[["create-se"]] <- processInputCommands(x, name="se")
 
     replacements <- list(
         METHOD=method,
         ASSAY=deparseToString(assay),
-        AUTHOR=deparseToString(as.list(author))
+        AUTHOR=paste(sprintf("  - %s", author), collapse="\n")
     )
 
     if (!is.null(subset.factor)) {
@@ -34,28 +34,28 @@
             )
         )
     } else {
-        parsed[["subset-data"]] <- NULL
+        parsed[["subset-se"]] <- NULL
     }
 
     if (!is.null(design) && !is.null(contrasts)) {
-        parsed[["design-matrix"]] <- processCustomDesignMatrix(design=design)
+        parsed[["design-matrix"]] <- processCustomDesignMatrix(design=design, se.name="se")
         contrast.info <- processCustomContrasts(contrasts)
         replacements$FILTER_OPTS <- "design=design"
         parsed[["subset-group"]] <- NULL
 
     } else {
-        parsed[["design-matrix"]] <- processSimpleDesignMatrix(groups=groups, block=block, covariates=covariates)
+        parsed[["design-matrix"]] <- processSimpleDesignMatrix(groups=groups, block=block, covariates=covariates, se.name="se")
         contrast.info <- processSimpleComparisons(comparisons)
 
         if (is.null(groups)) {
             replacements$FILTER_OPTS <- "design=design"
         } else {
-            replacements$FILTER_ARGS <- "group=variables$group."
+            replacements$FILTER_OPTS <- "group=model.data$group."
         }
-        parsed[["mds-relabel"]] <- "labels <- variables$group."
+        parsed[["mds-relabel"]] <- "labels <- model.data$group."
 
         group.levels <- NULL
-        if (subset.groups && length(all.groups)) {
+        if (subset.groups) {
             group.levels <- .find_used_groups(contrast.info)
         }
         if (!is.null(group.levels)) {
@@ -82,7 +82,9 @@
     group.levels <- NULL
     if (!any(not.grouped)) {
         all.groups <- lapply(contrast.info, function(con) con[c("left", "right", "groups")])
-        group.levels <- sort(unique(unlist(all.groups)))
+        if (length(all.groups)) {
+            group.levels <- sort(unique(unlist(all.groups)))
+        }
     }
     group.levels
 }

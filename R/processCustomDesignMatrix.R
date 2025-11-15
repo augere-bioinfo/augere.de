@@ -41,7 +41,7 @@
 #'
 #' @export
 #' @import augere.core
-processCustomDesignMatrix <- function(design, se.name, name="design") {
+processCustomDesignMatrix <- function(design, se.name, name = "design") {
     if (is.function(design)) {
         cmd <- sprintf("(%s)(%s)", deparseToString(design), se.name)
     } else if (is(design, "formula")) {

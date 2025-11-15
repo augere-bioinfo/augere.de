@@ -97,7 +97,7 @@ con
 :BEGIN lfc-contrast
 For single contrasts, we can focus on genes with larger effect sizes by using `treat()` to test for significant differences from a log-fold change threshold.
 
-```{r test-<%= CONTRAST_CHUNK_NAME %>}
+```{r}
 fit2 <- limma::contrasts.fit(fit, con)
 fit2 <- limma::treat(fit2, lfc=<%= LFC_THRESHOLD %><%= EB_OPTS %>)
 ```
@@ -106,7 +106,7 @@ fit2 <- limma::treat(fit2, lfc=<%= LFC_THRESHOLD %><%= EB_OPTS %>)
 :BEGIN no-lfc-contrast
 We perform moderated $t$-tests to identify significant deviations from the null hypothesis.
 
-```{r test-<%= CONTRAST_CHUNK_NAME %>}
+```{r}
 fit2 <- limma::contrasts.fit(fit, con)
 fit2 <- limma::eBayes(fit2<%= EB_OPTS %>)
 ```
@@ -159,37 +159,38 @@ rownames(de.df) <- rownames(se)
 We also give nicer names to some of the columns: 
 
 ```{r}
-colnames(deres)[colnames(deres) == "P.Value"] <- "PValue"
-colnames(deres)[colnames(deres) == "adj.P.Val"] <- "FDR"
+colnames(de.df)[colnames(de.df) == "P.Value"] <- "PValue"
+colnames(de.df)[colnames(de.df) == "adj.P.Val"] <- "FDR"
+```
 
 ```{r, eval=is.null(dim(con)), echo=is.null(dim(con))}
-colnames(deres)[colnames(deres) == "logFC"] <- "LogFC"
+colnames(de.df)[colnames(de.df) == "logFC"] <- "LogFC"
 ```
 
 ```{r, eval=!is.null(dim(con)), echo=!is.null(dim(con))}
 expected <- make.names(colnames(con))
-m <- match(expected, colnames(deres))
+m <- match(expected, colnames(de.df))
 stopifnot(!anyNA(m), !anyDuplicated(m))
-colnames(deres)[m] <- paste0("LogFC.", colnames(con))
+colnames(de.df)[m] <- paste0("LogFC.", colnames(con))
 ```
 
 We store the results in our output list.
 
 ```{r}
-all.results[[<%= CONTRAST_NAME_DEPARSED %>]] <- df
+all.results[[<%= CONTRAST_NAME_DEPARSED %>]] <- de.df
 ```
 
 We also save them to file with some metadata describing what's going on.
 
 ```{r <%= SAVING_CHUNK_NAME %>}
 de.meta <- list(
-    title=<%= DEPARSED_CONTRAST_NAME %>,
+    title=<%= CONTRAST_NAME_DEPARSED %>,
     authors=<%= AUTHOR %>,
     type="differential_gene_expression",
     differential_gene_expression=list(
-:BEGIN diff-result-metadata
+:BEGIN diff-metadata
 :END
-:BEGIN subset-result-metadata
+:BEGIN subset-metadata
 :END
         method="voom-limma"
     )

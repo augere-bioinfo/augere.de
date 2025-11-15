@@ -37,7 +37,7 @@
 #' If this and \code{design} are specified, \code{groups}, \code{block}, \code{covariates}, \code{comparisons} and \code{subset.groups} are ignored.
 #' @param metadata Named list of additional metadata to store alongside each result.
 #' @param output.dir String containing the path to an output directory in which to write the Rmarkdown file and save results.
-#' @param author String specifying the identity of the author. 
+#' @param author Character vector containg the names of the authors.
 #' @param dry.run Boolean indicating whether to perform a dry run.
 #' This generates the Rmarkdown report in \code{output.dir} but does not execute the analysis.
 #' @param save.results Boolean indicating whether the results should be saved to file.
@@ -50,7 +50,7 @@
 #' \item \code{results}, a list of \link[S4Vectors]{DataFrame}s of tables from all contrasts;
 #' \item \code{normalized}, a \link[SummarizedExperiment]{RangedSummarizedExperiment} with normalized expression values (possibly subsetted by sample).
 #' }
-#' If \code{save.all=TRUE}, the results are saved in a \code{results} directory inside \code{output}.
+#' If \code{save.results=TRUE}, the results are saved in a \code{results} directory inside \code{output}.
 #'
 #' If \code{dry.run=TRUE}, \code{NULL} is returned.
 #' Only the Rmarkdown report is saved to file.
@@ -106,8 +106,8 @@ runEdgeR <- function(
     fname <- file.path(output.dir, "report.Rmd")
 
     common.start <- .initialize(
+        x=x,
         method="edgeR",
-        se=x,
         assay=assay,
         groups=groups,
         comparisons=comparisons,
@@ -124,8 +124,8 @@ runEdgeR <- function(
     contrast.info <- common.start$contrasts
 
     template <- system.file("templates", "edgeR.Rmd", package="augere.de", mustWork=TRUE)
-    parsed <- processRmdTemplate(readLines(template))
-    replacements <- list(AUTHOR = deparseToString(as.list(author)))
+    parsed <- parseRmdTemplate(readLines(template))
+    replacements <- list()
 
     if (robust) {
         replacements$QL_OPTS <- ", robust=TRUE"
@@ -146,6 +146,8 @@ runEdgeR <- function(
 
     contrasts <- vector("list", length(contrast.info))
     save.names <- character(length(contrast.info))
+    author.txt <- deparseToString(as.list(author))
+
     for (i in seq_along(contrast.info)) {
         copy <- parsed$contrast
         current <- contrast.info[[i]]
@@ -159,13 +161,19 @@ runEdgeR <- function(
         }
 
         if (!is.null(row.data)) {
-            copy[["attach-annotation"]] <- sprintf("deres <- cbind(deres, rowData(se)[,%s,drop=FALSE])", deparseToString(row.data))
+            copy[["attach-annotation"]] <- sprintf("de.df <- cbind(de.df, rowData(se)[,%s,drop=FALSE])", deparseToString(row.data))
         }
 
-        copy[["diff-metadata"]] <- .define_contrast_metadata(current, groups=groups, indent=3)
+        meta.cmds <- processContrastMetadata(current)
+        meta.cmds[-1] <- paste0("    ", meta.cmds[-1])
+        meta.cmds[1] <- paste0("    contrast=", meta.cmds[1])
+        meta.cmds[length(meta.cmds)] <- paste0(meta.cmds[length(meta.cmds)], ",")
+        copy[["diff-metadata"]] <- meta.cmds
+
         if (!is.null(subset.factor)) {
             copy[["subset-metadata"]] <- paste0(strrep(" ", 12), "subset=subset.metadata,")
         }
+
         if (!merge.metadata) {
             copy[["merge-metadata"]] <- NULL
         } else {
@@ -177,6 +185,7 @@ runEdgeR <- function(
         contrasts[[i]] <- replacePlaceholders(
             copy,
             list(
+                AUTHOR=author.txt,
                 CONTRAST_NAME_SIMPLE=current$title,
                 CONTRAST_NAME_DEPARSED=deparseToString(current$title),
                 SAVING_CHUNK_NAME=save.name
@@ -195,13 +204,13 @@ runEdgeR <- function(
         return(NULL)
     }
 
-    if (save.all) {
+    if (save.results) {
         skip.chunks <- NULL
     } else {
         skip.chunks <- save.names
     }
     env <- new.env()
-    compileReport(fname, envir=env, skip.chunks=skip.chunks)
+    compileReport(fname, env=env, skip.chunks=skip.chunks)
 
-    list(results=env$all.results, normalized=env$processed.se)
+    list(results=env$all.results, normalized=env$norm.se)
 }

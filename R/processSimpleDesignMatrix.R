@@ -28,7 +28,7 @@
 #' The design matrix is expected to be of full column rank, e.g., \code{groups} is not confounded with elements of \code{block}.
 #'
 #' @examples
-#' cat(processSimpleDesignMatrix("my_groups", "age", "batch", "se", "design"), sep="\n")
+#' cat(processSimpleDesignMatrix("my_groups", "age", "batch", "se"), sep="\n")
 #'
 #' @seealso
 #' \code{\link{processCustomDesignMatrix}}, for creating more complex design matrices.
@@ -37,7 +37,7 @@
 #'
 #' @export
 #' @import augere.core
-processSimpleDesignMatrix <- function(groups, covariates, block, se.name, design.name) {
+processSimpleDesignMatrix <- function(groups, covariates, block, se.name, design.name = "design") {
     cmds <- c(
         "model.data <- list()",
         sprintf("cd <- SummarizedExperiment::colData(%s)", se.name)

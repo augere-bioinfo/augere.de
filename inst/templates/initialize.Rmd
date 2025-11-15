@@ -1,6 +1,7 @@
 ---
 title: Differential expression with <%= METHOD %>
-author: <%= AUTHOR %>
+author:
+<%= AUTHOR %>
 date: "`r Sys.Date()`"
 output: BiocStyle::html_document
 ---
@@ -88,8 +89,10 @@ head(y$samples, 10)
 ```
 
 The TMM normalization factors go beyond library size normalization by accounting for composition biases.
-These biases are introduced by differential expression where upregulated genes outcompete others for sequencing resources, resulting in slightly incorrect log-fold changes and/or spurious DE. 
-`r BiocStyle::Biocpkg("edgeR")` handles this by computing effective library sizes (scaled by `norm.factors`) representing the combined effect of library size differences and composition biases.
+These biases are introduced by differential expression where upregulated genes outcompete others for sequencing resources,
+resulting in slightly incorrect log-fold changes and/or spurious DE. 
+`r BiocStyle::Biocpkg("edgeR")` handles this by computing effective library sizes (scaled by `norm.factors`),
+which represent the combined effect of library size differences and composition biases.
 
 ```{r}
 barplot(y$samples$norm.factors)

@@ -12,8 +12,8 @@
 
     replacePlaceholders(parsed,
         list(
-            ASSAY=safeDeparse(assay),
-            AUTHOR=safeDeparse(as.list(author))
+            ASSAY=deparseToString(assay),
+            AUTHOR=deparseToString(as.list(author))
         )
     )
 }

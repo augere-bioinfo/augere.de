@@ -13,6 +13,7 @@
 #' @export
 loadExampleDataset <- function() {
     if (is.null(cached$object)) {
+        env <- new.env()
         data("airway", package="airway", envir=env)
         se <- env$airway
         S4Vectors::metadata(se) <- list()

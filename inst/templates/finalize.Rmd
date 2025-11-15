@@ -5,7 +5,7 @@ This is typically useful for visualizing the expression profiles of the top DE g
 
 ```{r}
 norm.se <- se
-SummarizedExperiment::rowData(norm.se)$in.use <- seq_len(nrow(norm.se)) %in% y$genes$origin
+SummarizedExperiment::rowData(norm.se)$retained <- seq_len(nrow(norm.se)) %in% y$genes$origin
 norm.se$lib.size <- y$samples$lib.size
 norm.se$norm.factors <- y$samples$norm.factors
 SummarizedExperiment::assay(norm.se, "cpm") <- edgeR::cpm(
@@ -24,9 +24,9 @@ norm.meta <- list(
     type="summarized_experiment"
 )
 
-augere.diff::saveObject(
+augere.core::saveResult(
     norm.se,
-    file.path(result.dir, "se"), 
+    file.path(result.dir, "normalized"), 
 :BEGIN merge-metadata
     metadata=c(common.meta, norm.meta)
 :END

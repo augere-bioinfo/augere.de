@@ -99,7 +99,7 @@ tab[head(order(tab$PValue), n=10),]
 We report summary statistics for this comparison, defining significant differences at a FDR threshold of 5%.
 
 ```{r}
-summary(edgeR::decideTests(res))
+summary(limma::decideTests(res))
 ```
 
 ```{r, fig.cap='Mean-difference plot for this contrast. Each point represents a gene and is colored according to whether it was significantly up- or down-regulated at an FDR of 5%.', eval=is.null(dim(con)), echo=is.null(dim(con))}
@@ -155,7 +155,7 @@ colnames(de.df)[m] <- paste0("LogFC.", colnames(con))
 We store the results in our output list.
 
 ```{r}
-all.results[[<%= CONTRAST_NAME_DEPARSED %>]] <- df
+all.results[[<%= CONTRAST_NAME_DEPARSED %>]] <- de.df
 ```
 
 We also save them to file with some metadata describing what's going on.
