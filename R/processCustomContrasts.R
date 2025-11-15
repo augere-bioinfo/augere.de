@@ -66,11 +66,29 @@ processCustomContrasts <- function(contrasts, design.name = "design", contrast.n
 
         if (is.character(con)) {
             cmd <- sprintf("%s <- limma::makeContrasts(contrasts=%s, levels=%s)", contrast.name, deparseToString(con), design.name)
-            cmd <- c(cmd, .sanitize_dimensions_cmd())
+
+            # Remove dimensions if the design only has one column, so that
+            # limma doesn't use the column names to rename the LFC-related
+            # columns in the output table.
+            cmd <- c(cmd, 
+                sprintf("if (!is.null(dim(%s)) && ncol(%s) == 1) {", contrast.name, contrast.name),
+                sprintf("    %s <- drop(%s)", contrast.name, contrast.name),
+                        "}"
+            )
 
         } else if (is.function(con)) {
-            cmd <- sprintf("%s <- (%s)(%s)", contrast.name, deparseToString(con), design.name)
-            cmd <- c(cmd, .sanitize_dimensions_cmd())
+            cmd <- sprintf("%s <- (%s)(%s)", contrast.name, deparseToString(con, indent=0), design.name)
+
+            # Ditto to the above, but we add column names if they  aren't present already.
+            cmd <- c(cmd, 
+                sprintf("if (!is.null(dim(%s))) {", contrast.name),
+                sprintf("    if (ncol(%s) == 1) {", contrast.name),
+                sprintf("        %s <- drop(%s)", contrast.name, contrast.name),
+                sprintf("    } else if (is.null(colnames(%s))) {", contrast.name),
+                sprintf("        colnames(%s) <- seq_len(ncol(%s))", contrast.name, contrast.name),
+                        "    }",
+                        "}"
+            )
 
         } else {
             if (!is.null(dim(con)) && ncol(con) > 1) {
@@ -83,14 +101,14 @@ processCustomContrasts <- function(contrasts, design.name = "design", contrast.n
                 )
                 if (is.null(colnames(con))) {
                     cmd <- c(cmd, 
-                            "    colnames(%s) <- seq_len(ncol(out))"
+                            "    colnames(out) <- seq_len(ncol(out))"
                     )
                 } else {
                     cmd <- c(cmd, 
                             "    colnames(out) <- colnames(tmp)"
                     )
                 }
-                cmd <- c(
+                cmd <- c(cmd,
                             "    out",
                             "})"
                 )
@@ -100,7 +118,7 @@ processCustomContrasts <- function(contrasts, design.name = "design", contrast.n
                     sprintf("%s <- local({", contrast.name),
                     sprintf("    tmp <- %s", deparseToString(drop(con))),
                     sprintf("    out <- numeric(ncol(%s))", design.name),
-                    sprintf("    names(tmp) <- colnames(%s)", design.name),
+                    sprintf("    names(out) <- colnames(%s)", design.name),
                             "    out[names(tmp)] <- tmp", 
                             "    out",
                             "})"
@@ -123,17 +141,4 @@ processCustomContrasts <- function(contrasts, design.name = "design", contrast.n
     }
 
     output
-}
-
-# Remove dimensions if the design only has one column, so that
-# limma doesn't use the column names to rename the LFC-related
-# columns in the output table.
-.sanitize_dimensions_cmd <- function() {
-    "if (!is.null(dim(con))) {
-        if (ncol(con) == 1) {
-            con <- drop(con)
-        } else if (is.null(colnames(con))) {
-            colnames(con) <- seq_len(ncol(con))
-        }
-    }"
 }
