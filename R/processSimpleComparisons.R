@@ -118,14 +118,14 @@ processSimpleComparisons <- function(comparisons, design.name = "design", contra
 
             separator <- which(na)
             left <- con[1:(separator - 1)]
-            right <- con[(separator + 1):length(separator)]
+            right <- con[(separator + 1):length(con)]
 
             info$type <- "versus"
             info$left <- left
             info$right <- right
 
             if (is.null(info$title)) {
-                info$title <- sprintf("Increase in `%s` over %s`", .multiple_group_names(left), .multiple_group_names(right))
+                info$title <- sprintf("Increase in `%s` over `%s`", .multiple_group_names(left), .multiple_group_names(right))
             }
             info$commands <- c(
                 sprintf("%s <- numeric(ncol(%s))", contrast.name, design.name),
