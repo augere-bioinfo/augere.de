@@ -102,11 +102,12 @@ We the normalization results by creating MD (mean-difference) plots.
 Ideally, the log-fold changes for most genes should be centered around zero if the normalization was successful.
 
 ```{r, fig.wide=TRUE, fig.asp=1/3, fig.cap="Mean-difference plots for each sample against the average reference of all other samples. Each plot corresponds to a sample while each point represents a gene."}
-lcpm <- edgeR::cpm(y, log=TRUE, prior.count=3)
-n <- ncol(lcpm)
+y.cpm <- edgeR::cpm(y, log=TRUE, prior.count=3)
+
+# Avoid creating too many plots, otherwise the compiled report is too big.
 par(mfrow=c(1, 3), mar=c(5.1, 4.1, 4.1, 0.1))
-for (i in seq_len(min(9, n))) { # avoid spewing out more than 9 plots.
-    limma::plotMD(lcpm, column=i)
+for (i in seq_len(min(9, ncol(y.cpm)))) {
+    limma::plotMD(y.cpm, column=i)
     abline(h=0, col='red', lty=2)
 }
 ```
@@ -117,15 +118,14 @@ To get an overview of our dataset, we create a multi-dimensional scaling (MDS) p
 Samples that are closer together on the plot are more similar in their expression profiles -
 or more specifically, the most extreme log-fold changes are closer to zero.
 
-```{r, fig.cap="MDS plot of the dataset. Each point represents a sample and is colored according to its group(s) of origin."}
-:BEGIN mds-relabel
-# Manufacturing labels from the design matrix (sans the intercept).
-design0 <- design[,colMeans(design==1) != 1,drop=FALSE]
-labels <- factor(apply(design0, 1, function(x) {
-    paste(collapse='.', colnames(design0)[x != 0])
-}))
-
-:END
-lcpm <- edgeR::cpm(y, log=TRUE, prior.count=3)
-limma::plotMDS(lcpm, labels=labels, col=as.integer(labels))
+:BEGIN mds-grouped
+```{r, fig.cap="MDS plot of the dataset. Each point represents a sample and is named/colored according to its group(s) of origin."}
+mds.labels <- factor(model.data$group.)
+limma::plotMDS(y.cpm, labels=as.character(mds.labels), col=as.integer(mds.labels))
 ```
+:END
+:BEGIN mds-ungrouped
+```{r, fig.cap="MDS plot of the dataset. Each point represents a sample."}
+limma::plotMDS(y.cpm)
+```
+:END

@@ -42,6 +42,7 @@
         contrast.info <- processCustomContrasts(contrasts)
         replacements$FILTER_OPTS <- "design=design"
         parsed[["subset-group"]] <- NULL
+        parsed[["mds-grouped"]] <- NULL
 
     } else {
         parsed[["design-matrix"]] <- processSimpleDesignMatrix(groups=groups, block=block, covariates=covariates, se.name="se")
@@ -49,25 +50,24 @@
 
         if (is.null(groups)) {
             replacements$FILTER_OPTS <- "design=design"
+            parsed[["subset-group"]] <- NULL
+            parsed[["mds-grouped"]] <- NULL
         } else {
             replacements$FILTER_OPTS <- "group=model.data$group."
-        }
-        parsed[["mds-relabel"]] <- "labels <- model.data$group."
+            parsed[["mds-ungrouped"]] <- NULL
 
-        group.levels <- NULL
-        if (subset.groups) {
-            group.levels <- .find_used_groups(contrast.info)
-        }
-        if (!is.null(group.levels)) {
-            parsed[["subset-group"]] <- replacePlaceholders(
-                parsed[["subset-group"]],
-                list(
-                    GROUP_FACTOR=deparseToString(groups),
-                    GROUP_LEVELS=deparseToString(group.levels)
+            if (subset.groups) {
+                group.levels <- .find_used_groups(contrast.info)
+                parsed[["subset-group"]] <- replacePlaceholders(
+                    parsed[["subset-group"]],
+                    list(
+                        GROUP_FACTOR=deparseToString(groups),
+                        GROUP_LEVELS=deparseToString(group.levels)
+                    )
                 )
-            )
-        } else {
-            parsed[["subset-group"]] <- NULL
+            } else {
+                parsed[["subset-group"]] <- NULL
+            }
         }
     }
 
@@ -78,13 +78,12 @@
 }
 
 .find_used_groups <- function(contrast.info) {
-    not.grouped <- vapply(contrast.info, function(con) con$type %in% c("covariate", "custom"), TRUE)
-    group.levels <- NULL
-    if (!any(not.grouped)) {
-        all.groups <- lapply(contrast.info, function(con) con[c("left", "right", "groups")])
-        if (length(all.groups)) {
-            group.levels <- sort(unique(unlist(all.groups)))
-        }
+    # We don't want to throw out potentially relevant information.
+    not.grouped <- vapply(contrast.info, function(con) con$type %in% "covariate", TRUE)
+    if (any(not.grouped)) {
+        return(NULL)
     }
-    group.levels
+
+    all.groups <- lapply(contrast.info, function(con) con[c("left", "right", "groups")])
+    group.levels <- sort(unique(unlist(all.groups)))
 }
