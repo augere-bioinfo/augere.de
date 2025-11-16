@@ -8,10 +8,11 @@ norm.se <- se
 SummarizedExperiment::rowData(norm.se)$retained <- seq_len(nrow(norm.se)) %in% y$genes$origin
 norm.se$lib.size <- y$samples$lib.size
 norm.se$norm.factors <- y$samples$norm.factors
-SummarizedExperiment::assay(norm.se, "cpm") <- edgeR::cpm(
+SummarizedExperiment::assay(norm.se, "logCPM") <- edgeR::cpm(
     as.matrix(SummarizedExperiment::assay(norm.se, <%= ASSAY %>)), 
     lib.size=norm.se$lib.size, 
-    norm.factors=norm.se$norm.factors
+    norm.factors=norm.se$norm.factors,
+    log=TRUE
 )
 ```
 

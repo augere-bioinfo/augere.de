@@ -29,6 +29,9 @@ test_that(".initialize() works with 'default' options", {
 
     # Checking that the contrasts are okay.
     expect_identical(output$contrasts[[1]]$title, "Increase in `A` over `B`")
+    expect_identical(output$contrasts[[1]]$type, "versus")
+    expect_identical(output$contrasts[[1]]$left, "A")
+    expect_identical(output$contrasts[[0]]$right, "B")
 
     env <- new.env()
     tmp <- tempfile()
@@ -180,4 +183,7 @@ test_that(".initialize() works with custom matrices and contrasts", {
     expect_identical(env$se, se) # no filtering is done on the samples.
     expect_true(any(grepl("filterByExpr\\(.*design=", unlist(output$text))))
     expect_null(env$mds.labels)
+
+    # Checking that the contrasts are okay.
+    expect_identical(output$contrasts[[1]]$type, "custom")
 })

@@ -131,7 +131,7 @@ de.df <- S4Vectors::DataFrame(tab)
 de.df <- de.df[match(seq_len(nrow(se)), de.df$origin),]
 de.df$origin <- NULL
 rownames(de.df) <- rownames(se)
-:BEGIN attach-annotation
+:BEGIN attach-rowdata
 :END
 ```
 

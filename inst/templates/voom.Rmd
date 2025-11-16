@@ -52,8 +52,8 @@ We can also examine the mean-variance relationship for the shrunk estimates.
 Ideally, there should be no trend at all as it should have been handled by the observation weights.
 
 ```{r, fig.cap="Residual standard deviation (sigma) plotted against the mean log-CPM. Each point represents a gene<%= EXTRA_EB_CAPT %>."}
-fit <- eBayes(fit<%= EB_OPTS %>)
-plotSA(fit)
+fit <- limma::eBayes(fit<%= EB_OPTS %>)
+limma::plotSA(fit)
 ```
 
 # Performing contrasts
@@ -152,7 +152,7 @@ de.df <- S4Vectors::DataFrame(tab)
 de.df <- de.df[match(seq_len(nrow(se)), de.df$origin),]
 de.df$origin <- NULL
 rownames(de.df) <- rownames(se)
-:BEGIN attach-annotation
+:BEGIN attach-rowdata
 :END
 ```
 

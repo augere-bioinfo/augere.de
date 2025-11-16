@@ -153,11 +153,17 @@ runVoom <- function(
             copy[["lfc-contrast"]] <- NULL
         } else {
             copy[["no-lfc-contrast"]] <- NULL
-            copy[["lfc-contrast"]] <- replacePlaceholders(copy[["lfc-contrast"]], list(THRESHOLD=deparseToString(lfc.threshold)))
+            copy[["lfc-contrast"]] <- replacePlaceholders(
+                copy[["lfc-contrast"]],
+                list(
+                    EB_OPTS=replacements$EB_OPTS,
+                    LFC_THRESHOLD=deparseToString(lfc.threshold)
+                )
+            )
         }
 
         if (!is.null(row.data)) {
-            copy[["attach-annotation"]] <- sprintf("de.df <- cbind(de.df, rowData(se)[,%s,drop=FALSE])", deparseToString(row.data))
+            copy[["attach-rowdata"]] <- sprintf("de.df <- cbind(SummarizedExperiment::rowData(se)[,%s,drop=FALSE], de.df)", deparseToString(row.data))
         }
 
         meta.cmds <- processContrastMetadata(current)
@@ -167,7 +173,7 @@ runVoom <- function(
         copy[["diff-metadata"]] <- meta.cmds
 
         if (!is.null(subset.factor)) {
-            copy[["subset-metadata"]] <- paste0(strrep(" ", 12), "subset=subset.metadata,")
+            copy[["subset-metadata"]] <- paste0(strrep(" ", 12), "subset=subset.meta,")
         }
 
         if (!merge.metadata) {
@@ -204,7 +210,7 @@ runVoom <- function(
     if (save.results) {
         skip.chunks <- NULL
     } else {
-        skip.chunks <- save.names
+        skip.chunks <- c("save-directory", save.names, "save-norm")
     }
     env <- new.env()
     compileReport(fname, env=env, skip.chunks=skip.chunks)

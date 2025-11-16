@@ -24,6 +24,8 @@
 #' @param subset.levels Vector containing the levels of the \code{subset.factor} to be retained.
 #' @param subset.groups Boolean indicating whether to automatically subset the dataset to only those samples assigned to groups in \code{comparisons}.
 #' Setting this to \code{TRUE} sacrifices some residual degrees of freedom for greater robustness against variability in irrelevant groups.
+#' Ignored if \code{design} and \code{contrasts} are provided.
+#' Also ignored if \code{covariates} is provided, as all samples are informative for a continuous covariate.
 #' @param robust Boolean indicating whether robust empirical Bayes shrinkage should be used in \code{\link[edgeR]{glmQLFit}}. 
 #' Setting this to \code{TRUE} sacrifices some precision for improved robustness against genes with extreme dispersions.
 #' @param trend Boolean indicating whether to shrink the QL dispersions towards a trend fitted to the mean in \code{\link[edgeR]{glmQLFit}}.
@@ -161,7 +163,7 @@ runEdgeR <- function(
         }
 
         if (!is.null(row.data)) {
-            copy[["attach-annotation"]] <- sprintf("de.df <- cbind(de.df, rowData(se)[,%s,drop=FALSE])", deparseToString(row.data))
+            copy[["attach-rowdata"]] <- sprintf("de.df <- cbind(SummarizedExperiment::rowData(se)[,%s,drop=FALSE], de.df)", deparseToString(row.data))
         }
 
         meta.cmds <- processContrastMetadata(current)
@@ -171,7 +173,7 @@ runEdgeR <- function(
         copy[["diff-metadata"]] <- meta.cmds
 
         if (!is.null(subset.factor)) {
-            copy[["subset-metadata"]] <- paste0(strrep(" ", 12), "subset=subset.metadata,")
+            copy[["subset-metadata"]] <- paste0(strrep(" ", 12), "subset=subset.meta,")
         }
 
         if (!merge.metadata) {
@@ -207,7 +209,7 @@ runEdgeR <- function(
     if (save.results) {
         skip.chunks <- NULL
     } else {
-        skip.chunks <- save.names
+        skip.chunks <- c('save-directory', save.names, "save-norm")
     }
     env <- new.env()
     compileReport(fname, env=env, skip.chunks=skip.chunks)
