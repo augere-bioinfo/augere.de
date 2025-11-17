@@ -31,7 +31,7 @@ test_that(".initialize() works with 'default' options", {
     expect_identical(output$contrasts[[1]]$title, "Increase in `A` over `B`")
     expect_identical(output$contrasts[[1]]$type, "versus")
     expect_identical(output$contrasts[[1]]$left, "A")
-    expect_identical(output$contrasts[[0]]$right, "B")
+    expect_identical(output$contrasts[[1]]$right, "B")
 
     env <- new.env()
     tmp <- tempfile()
@@ -136,6 +136,35 @@ test_that(".initialize() works for a design matrix without groups", {
     expect_identical(env$se, se) # no filtering is done on the samples.
     expect_true(any(grepl("filterByExpr\\(.*design=", unlist(output$text))))
     expect_null(env$mds.labels)
+})
+
+test_that(".initialize() works with covariates + group but only the covariates are tested", {
+    fun <- augere.core::resetInputCache()
+    on.exit(fun(), add=TRUE, after=TRUE)
+
+    output <- augere.de:::.initialize(
+        x=se, 
+        method="edgeR",
+        assay="counts",
+        groups="group",
+        comparisons="age",
+        covariates="age",
+        block=NULL,
+        subset.factor=NULL,
+        subset.levels=NULL,
+        subset.groups=FALSE,
+        design=NULL,
+        contrasts=NULL,
+        author="Chihaya Kisaragi"
+    )
+
+    env <- new.env()
+    tmp <- tempfile()
+    dir.create(tmp)
+    augere.core::compileReport(file=file.path(tmp, "report.Rmd"), contents=output$text, env=env)
+
+    expect_identical(env$se, se) # no filtering by sample.
+    expect_true(any(grepl("filterByExpr\\(.*group=", unlist(output$text))))
 })
 
 test_that(".find_used_groups() works as expected", {

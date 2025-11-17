@@ -46,7 +46,7 @@ processCustomDesignMatrix <- function(design, se.name, design.name = "design") {
     if (is.function(design)) {
         cmd <- sprintf("(%s)(%s)", deparseToString(design, indent=0), se.name)
     } else if (is(design, "formula")) {
-        cmd <- sprintf("model.matrix(%s, data=colData(%s))", deparseToString(design), se.name)
+        cmd <- sprintf("model.matrix(%s, data=SummarizedExperiment::colData(%s))", deparseToString(design), se.name)
     } else {
         cmd <- deparseToString(design, indent=4)
     }

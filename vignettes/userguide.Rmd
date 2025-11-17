@@ -1,0 +1,325 @@
+---
+title: Differential expression analysis pipelines
+author:
+- name: Aaron Lun
+  email: infinite.monkeys.with.keyboards@gmail.com
+date: "Revised: November 17, 2025"
+output: BiocStyle::html_document
+package: augere.de 
+vignette: >
+  %\VignetteIndexEntry{Differential expression analyses}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, echo=FALSE, results="hide"}
+knitr::opts_chunk$set(error=FALSE, message=FALSE, warning=FALSE)
+```
+
+```{r, echo=FALSE, results="hide"}
+self <- BiocStyle::Biocpkg("augere.de")
+set.seed(1000)
+```
+
+# Overview
+
+`r self` implements **augere** pipelines for differential expression (DE) analysis of RNA-seq data based on `r BiocStyle::Biocpkg("edgeR")` and `voom()`.
+Each analysis pipeline creates a self-contained Rmarkdown report that documents each step in the DE analysis,
+after which it compiles the report and returns the analysis results to the user in the current R session.
+We can then inspect the report to determine exactly how the analysis was performed. 
+We can also modify the report to customize the analysis beyond the options provided by the pipeline function.
+
+# Quick start
+
+Let's demonstrate on a dataset derived from the `r BiocStyle::Biocpkg("airway")` package.
+This has two groups (treated and untreated) so the parametrization of the analysis is fairly simple:
+
+```{r, fig.show="hide"}
+library(augere.de)
+se <- loadExampleDataset()
+
+# Testing for DE between 'trt' and 'untrt' in the 'dex' grouping factor.
+output.dir <- tempfile()
+res <- runEdgeR(se, group="dex", comparisons=c("trt", "untrt"), output.dir=output.dir)
+
+# List of tables of DE results: 
+names(res$results)
+res$results[[1]]
+
+# SummarizedExperiment with normalized expression values.
+res$normalized
+```
+
+As mentioned, `runEdgeR()` generates an Rmarkdown report containing (almost) all of the steps required to reproduce the analysis.
+Let's have a look at it:
+
+```{r}
+fname <- file.path(output.dir, "report.Rmd")
+cat(head(readLines(fname), 50), sep="\n")
+```
+
+The function will also save the results to file inside a `results` subdirectory, which can be loaded back into the session using the `readResult()` function:
+
+```{r}
+reloaded <- augere.core::readResult(file.path(output.dir, "results", "de-1"))
+
+# The result itself:
+reloaded$x
+
+# Along with some metadata:
+str(reloaded$metadata)
+```
+
+`runVoom()` does the same but for `voom()` instead of `r BiocStyle::Biocpkg("edgeR")`.
+For simplicity, we will focus on `runEdgeR()` in the rest of this vignette.
+
+# More experimental designs
+
+We can block on uninteresting factors of variation - for example, the cell line of origin:
+
+```{r, fig.show="hide"}
+output.block.dir <- tempfile()
+res.block <- runEdgeR(
+    se,
+    group="dex",
+    block="cell",
+    comparisons=c("trt", "untrt"),
+    output.dir=output.block.dir,
+    save.results=FALSE # not writing to disk to save time.
+)
+```
+
+If continuous covariates are of interest, we can include them in the model and test their effects on expression:
+
+```{r, fig.show="hide"}
+# Making up a continuous covariate.
+se$tumor_fraction <- runif(ncol(se))
+
+# 'comparisons' of length 1 indicates that we want to test a single covariate.
+output.cov.dir <- tempfile()
+res.cov <- runEdgeR(
+    se,
+    group="dex",
+    covariate="tumor_fraction",
+    comparisons="tumor_fraction",
+    output.dir=output.cov.dir,
+    save.results=FALSE # not writing to disk to save time.
+)
+```
+
+For more complex cases, users can also directly pass in their own design matrices and contrasts:
+
+```{r, fig.show="hide"}
+output.custom.dir <- tempfile()
+res.custom <- runEdgeR(
+    se,
+    design=~0 + dex + tumor_fraction,
+    contrasts=c(dextrt = 1, dexuntrt = -1),
+    output.dir=output.custom.dir,
+    save.results=FALSE # not writing to disk to save time.
+)
+```
+
+# More comparison types
+
+We perform an ANOVA-like comparison by providing more than two groups in `comparisons`.
+Here, the null hypothesis is that there is no DE between any of the cell lines.
+
+```{r, fig.show="hide"}
+output.anova.dir <- tempfile()
+res.anova <- runEdgeR(
+    se,
+    group="cell",
+    comparisons=c("N052611", "N061011", "N080611", "N61311"),
+    output.dir=output.anova.dir,
+    save.results=FALSE # not writing to disk to save time.
+)
+```
+
+We can test for differences between the averages of two sets of groups.
+
+```{r, fig.show="hide"}
+output.sets.dir <- tempfile()
+res.sets <- runEdgeR(
+    se,
+    group="cell", 
+    comparisons=c("N052611", "N061011", "N080611", NA, "N61311"),
+    output.dir=output.sets.dir,
+    save.results=FALSE # not writing to disk to save time.
+)
+```
+
+We can perform multiple comparisons in a single call by passing a list of character vectors to `comparisons`.
+This can be convenient but does have some implications for subsetting, see [comments below](#subsetting).
+
+```{r, fig.show="hide"}
+output.multiple.dir <- tempfile()
+res.multiple <- runEdgeR(
+    se,
+    group="cell",
+    comparisons=list(c("N052611", "N061011"), c("N080611", "N61311")),
+    output.dir=output.multiple.dir,
+    save.results=FALSE # not writing to disk to save time.
+)
+names(res.multiple$results)
+```
+
+We can test against a log-fold change threshold to focus on genes with larger changes rather than those with small variances.
+This is better than _post hoc_ filtering of the DE table as it captures the uncertainty of the log-fold change estimates,
+otherwise, we'd enrich for genes with variable log-fold changes that only pass the threshold by chance.
+
+```{r, fig.show="hide"}
+output.lfc.dir <- tempfile()
+res.lfc <- runEdgeR(
+    se,
+    group="dex",
+    lfc.threshold=0.5,
+    comparisons=c("trt", "untrt"),
+    output.dir=output.lfc.dir,
+    save.results=FALSE # not writing to disk to save time.
+)
+```
+
+# Subsetting samples {#subsetting}
+
+If we only care about some of the samples, we can subset them by a pre-defined factor.
+For example, say we only care about a subset of the cell lines:
+
+```{r, fig.show="hide"}
+output.sub.dir <- tempfile()
+res.sub <- runEdgeR(
+    se, 
+    group="dex", 
+    comparisons=c("trt", "untrt"),
+    subset.factor="cell",
+    subset.levels=c("N052611", "N080611"),
+    output.dir=output.lfc.dir,
+    save.results=FALSE # not writing to disk to save time.
+)
+```
+
+By default, even if no subsetting is specified by the user, `runEdgeR()` will automatically subset the dataset to only those groups that are involved in the comparisons.
+This ensures that the variance/dispersion estimates are not affected by any unusual behavior in other (irrelevant) groups. 
+So, for example, the `runEdgeR()` call below would only consider samples in the `N052611` and `N061011` groups:
+
+```{r, fig.show="hide"}
+output.sub.group.dir <- tempfile()
+res.sub.group <- runEdgeR(
+    se,
+    group="cell",
+    comparisons=c("N052611", "N061011"),
+    output.dir=output.sub.group.dir,
+    save.results=FALSE # not writing to disk to save time
+)
+```
+
+The subsetting is only done once per `runEdgeR()` call, so if multiple `comparisons` are specified, the subdataset will retain groups from all comparisons. 
+This is occasionally helpful for meta-analyses as it ensures that the dispersion estimates are consistent across comparisons.
+Most of the time, though, it is better to call `runEdgeR()` separately for each comparison: 
+
+```{r, fig.show="hide"}
+comparisons <- list(c("N052611", "N061011"), c("N080611", "N61311"))
+
+# Multiple comparisons in one call:
+combined.results <- runEdgeR(
+    se,
+    group="cell",
+    comparisons=comparisons,
+    output.dir=tempfile(),
+    save.results=FALSE
+)
+
+# Or, repeated calls with different comparisons, which is usually the safer
+# approach unless you know better.
+separate.results <- list()
+for (i in seq_along(comparisons)) {
+    separate.results[[i]] <- runEdgeR(
+        se,
+        group="cell",
+        comparisons=comparisons[[i]],
+        output.dir=tempfile(),
+        save.results=FALSE
+    )
+}
+```
+
+# More output options
+
+As shown above, we can set `save.results=FALSE` to instruct `runEdgeR()` to not write results to disk.
+This is more efficient if we only want the results in the current R session.
+
+Setting `dry.run=TRUE` will instruct `runEdgeR()` to only generate the Rmarkdown report but not evaluate it.
+This can be helpful if further modifications to the report are intended.
+
+```{r}
+output.dry.dir <- tempfile()
+runEdgeR(
+    se,
+    group="dex",
+    comparisons=c("trt", "untrt"),
+    output.dir=output.dry.dir,
+    dry.run=TRUE
+)
+list.files(output.dry.dir)
+```
+
+The generated report is not quite self-contained as `runEdgeR()` doesn't know how `se` was constructed.
+In the absence of this information, the report contains a placeholder `stop()` to remind the user to insert the relevant commands:
+
+```{r, echo=FALSE}
+fname <- file.path(output.dry.dir, "report.Rmd")
+lines <- readLines(fname)
+has.stop <- grep("stop(", lines, fixed=TRUE)[1]
+cat(lines[has.stop + (-5):5], sep="\n")
+```
+
+If we know how the object was generated, we can pass this information to `runEdgeR()`:
+
+```{r}
+runEdgeR(
+    augere.core::wrapInput(se, commands="augere.de::loadExampleDataset()"),
+    group="dex",
+    comparisons=c("trt", "untrt"),
+    output.dir=output.dry.dir,
+    dry.run=TRUE
+)
+```
+
+This allows `runEdgeR()` to insert the relevant commands into the report for full reproducibility:
+
+```{r, echo=FALSE}
+fname <- file.path(output.dry.dir, "report.Rmd")
+lines <- readLines(fname)
+has.loader <- grep("loadExampleDataset(", lines, fixed=TRUE)[1]
+cat(lines[has.loader + (-5):5], sep="\n")
+```
+
+We can also attach more `rowData()` to the result tables or add custom fields to the result metadata:
+
+```{r, fig.show="hide"}
+output.custom.dir <- tempfile()
+res <- runEdgeR(
+    se,
+    group="dex",
+    comparisons=c("trt", "untrt"),
+    row.data=c("symbol", "gene_biotype"),
+    metadata=list(
+        project="my_phd_project",
+        collaborators=list("anne", "bob", "charlie"),
+        data_source="https://foo.bar.com"
+    ),
+    output.dir=output.custom.dir
+)
+
+# All the desired rowData columns are now included in the DF:
+res$results[[1]]
+
+# The custom metadata is also saved to disk.
+str(augere.core::readResult(file.path(output.custom.dir, "results", "de-1"))$metadata)
+```
+
+# Session information {-}
+
+```{r}
+sessionInfo()
+```

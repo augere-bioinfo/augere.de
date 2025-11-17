@@ -56,8 +56,11 @@
             replacements$FILTER_OPTS <- "group=model.data$group."
             parsed[["mds-ungrouped"]] <- NULL
 
+            group.levels <- NULL
             if (subset.groups) {
                 group.levels <- .find_used_groups(contrast.info)
+            }
+            if (!is.null(group.levels)) {
                 parsed[["subset-group"]] <- replacePlaceholders(
                     parsed[["subset-group"]],
                     list(
