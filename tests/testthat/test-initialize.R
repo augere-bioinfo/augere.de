@@ -30,8 +30,8 @@ test_that(".initialize() works with 'default' options", {
     # Checking that the contrasts are okay.
     expect_identical(output$contrasts[[1]]$title, "Increase in `A` over `B`")
     expect_identical(output$contrasts[[1]]$type, "versus")
-    expect_identical(output$contrasts[[1]]$left, "A")
-    expect_identical(output$contrasts[[1]]$right, "B")
+    expect_identical(output$contrasts[[1]]$left, list("A"))
+    expect_identical(output$contrasts[[1]]$right, list("B"))
 
     env <- new.env()
     tmp <- tempfile()
@@ -177,7 +177,7 @@ test_that(".find_used_groups() works as expected", {
     contrast.info <- processSimpleComparisons(list(c("age"), c("C", "D")))
     expect_null(augere.de:::.find_used_groups(contrast.info))
 
-    contrast.info <- processSimpleComparisons(c("C", NA, "A", "D"))
+    contrast.info <- processSimpleComparisons(c(foo="C", bar="A", foo="D"))
     expect_identical(augere.de:::.find_used_groups(contrast.info), c("A", "C", "D"))
 
     contrast.info <- processSimpleComparisons("foo")

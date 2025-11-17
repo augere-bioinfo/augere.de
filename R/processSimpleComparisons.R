@@ -15,11 +15,11 @@
 #' If \code{comparisons} is named, the corresponding (non-empty) name is used here, otherwise an appropriate title is automatically generated.
 #' \item \code{type}, the type of the comparison. 
 #' This is one of \code{"covariate"} (for covariates), \code{"versus"} (for comparison between two groups or two sets of groups) or \code{"anova"} (for ANOVAs).
-#' \item \code{left} and \code{right}, character vectors specifying the groups on the left (numerator) or right (denominator) of a \dQuote{versus} comparison.
+#' \item \code{left} and \code{right}, lists of strings specifying the groups on the left (numerator) or right (denominator) of a \dQuote{versus} comparison.
 #' Only present if \code{type = "versus"}.
-#' \item \code{groups}, character vector specifying the groups involved in an ANOVA-like comparison.
+#' \item \code{groups}, list of lists of strings specifying the groups involved in an ANOVA-like comparison.
 #' Only present if \code{type = "anova"}.
-#' \item \code{covariate}, the name of the covariate being tested.
+#' \item \code{covariate}, list of strings specifying the covariate(s) being tested.
 #' Only present if \code{type = "covariate"}.
 #' \item \code{commands}, character vector of R commands that produce the desired contrast vector/matrix.
 #' This assumes that the evaluation environment has a design matrix named \code{design.name}.
@@ -27,21 +27,25 @@
 #' }
 #' 
 #' @details
-#' If a vector in \code{comparisons} is of length 1, the sole entry is assumed to refer to a covariate in the \code{covariates} from \code{\link{processSimpleDesignMatrix}}.
+#' If a vector in \code{comparisons} is unnamed and of length 1, the sole entry is assumed to refer to a covariate in the \code{covariates} from \code{\link{processSimpleDesignMatrix}}.
 #' The null hypothesis is that the coefficient of the design matrix with the same name is zero, i.e., the covariate has no effect.
 #'
-#' If a comparison vector is of length 2, the entries represent the names of two groups in the specified \code{groups} factor.
+#' If a comparison vector is unnamed and of length 2, the entries represent the names of two groups in the specified \code{groups} factor.
 #' The null hypothesis is that there is no differential expression between the two groups.
 #' The log-fold change is defined as the first group (left) over the second (right). 
 #' 
-#' If a comparison vector is of length 3 or greater, the entries represent the names of groups in the specified \code{groups} factor.
-#' \itemize{
-#' \item If none of the strings are \code{NA}, null hypothesis is that all of the specified levels of \code{groups} are equal.
+#' If a comparison vector is unnamed and of length 3 or greater, the null hypothesis is that all of the specified levels of \code{groups} are equal.
 #' This is an ANOVA-like contrast where contrasts are formulated with respect to the last level,
 #' i.e., for \code{n} coefficients, \code{n-1} log-fold changes are reported representing the differences relative to the last coefficient.
-#' \item If any of the strings are \code{NA}, this is used to split the vector into two groups of groups.
-#' The null hypothesis is that the averages of the two groups of groups are equal.
-#' The log-fold change is defined as the first average over the second.
+#'
+#' If the comparison vector is named, all entries with the same name are assumed to represent a group of coefficients.
+#' \itemize{
+#' \item If there is only one unique name, all entries of the vector are assumed to refer to entries of \code{covariates}.
+#' The null hypothesis is that the average of the coefficients for the specified covariates is equal to zero.
+#' \item If there are exactly two unique names, these are assumed to refer to two sets of entries of \code{groups}.
+#' The null hypothesis is that the average of the per-group coefficients are equal between the two sets.
+#' \item If there are three or more names, these are assumed to refer to multiple sets of entries of \code{groups}.
+#' The null hypothesis is that the average of the per-group coefficients are equal across all sets, i.e., an ANOVA-like comparison.
 #' }
 #'
 #' @seealso
@@ -53,13 +57,14 @@
 #' processSimpleComparisons(c("disease", "healthy"))
 #' processSimpleComparisons("dosage")
 #' processSimpleComparisons(c("untreated", "treated", "healthy"))
-#' processSimpleComparisons(c("treatment1", "treatment2", NA, "healthy"))
+#' processSimpleComparisons(c(treated="treatment1", treated="treatment2", healthy="healthy"))
 #' processSimpleComparisons(list(
 #'     main=c("disease", "healthy"),
 #'     secondary="dosage"
 #' ))
 #'
 #' @export
+#' @importFrom utils head
 processSimpleComparisons <- function(comparisons, design.name = "design", contrast.name = "con") { 
     if (!is.list(comparisons)) {
         comparisons <- list(comparisons)
@@ -67,7 +72,7 @@ processSimpleComparisons <- function(comparisons, design.name = "design", contra
     output <- vector("list", length(comparisons))
 
     for (i in seq_along(comparisons)) {
-        con <- as.character(comparisons[[i]])
+        current <- comparisons[[i]]
 
         info <- list(title = NULL)
         if (!is.null(names(comparisons))) {
@@ -77,83 +82,75 @@ processSimpleComparisons <- function(comparisons, design.name = "design", contra
             }
         }
 
-        ngroups <- length(con)
+        if (is.null(names(current))) {
+            groupings <- as.list(current)
+        } else {
+            groupings <- split(current, names(current))
+        }
+        groupings <- lapply(groupings, as.character)
+
+        ngroups <- length(groupings)
         if (ngroups == 0L) {
             stop("vectors in 'comparisons' cannot be empty")
 
         } else if (ngroups == 1L) {
-            if (is.null(info$title)) {
-                info$title <- sprintf("Effect of increasing `%s`", con)
-            }
             info$type <- "covariate"
-            info$covariate <- con 
+            info$covariate <- as.list(groupings[[1]])
+            if (is.null(info$title)) {
+                info$title <- sprintf("Effect of increasing `%s`", .multiple_group_names(groupings[[1]]))
+            }
 
             info$commands <- c(
                 sprintf("%s <- numeric(ncol(%s))", contrast.name, design.name),
                 sprintf("names(%s) <- colnames(%s)", contrast.name, design.name),
-                sprintf("%s[%s] <- 1", contrast.name, deparseToString(paste0("covariate.", con)))
+                sprintf("%s[%s] <- %s", contrast.name, deparseToString(sprintf("covariate.%s", groupings[[1]])), .multiple_group_coefs(groupings[[1]]))
             )
 
         } else if (ngroups == 2L) {
-            if (is.null(info$title)) {
-                info$title <- sprintf("Increase in `%s` over `%s`", con[1], con[2])
-            }
-
             info$type <- "versus"
-            info$left <- con[1]
-            info$right <- con[2]
+            info$left <- as.list(groupings[[1]])
+            info$right <- as.list(groupings[[2]])
+            if (is.null(info$title)) {
+                info$title <- sprintf("Increase in `%s` over `%s`", .multiple_group_names(groupings[[1]]), .multiple_group_names(groupings[[2]]))
+            }
 
             info$commands <- c(
                 sprintf("%s <- numeric(ncol(%s))", contrast.name, design.name),
                 sprintf("names(%s) <- colnames(%s)", contrast.name, design.name),
-                sprintf("%s[%s] <- 1", contrast.name, deparseToString(paste0("group.", con[1]))),
-                sprintf("%s[%s] <- -1", contrast.name, deparseToString(paste0("group.", con[2])))
-            )
-
-        } else if (anyNA(con)) {
-            na <- is.na(con)
-            if (sum(na) != 1L) {
-                stop("expected no more than one NA value in the 'comparisons' vector")
-            }
-
-            separator <- which(na)
-            left <- con[1:(separator - 1)]
-            right <- con[(separator + 1):length(con)]
-
-            info$type <- "versus"
-            info$left <- left
-            info$right <- right
-
-            if (is.null(info$title)) {
-                info$title <- sprintf("Increase in `%s` over `%s`", .multiple_group_names(left), .multiple_group_names(right))
-            }
-            info$commands <- c(
-                sprintf("%s <- numeric(ncol(%s))", contrast.name, design.name),
-                sprintf("names(%s) <- colnames(%s)", contrast.name, design.name),
-                sprintf("%s[%s] <- %s", contrast.name, deparseToString(sprintf("group.%s", left)), .multiple_group_coefs(left)),
-                sprintf("%s[%s] <- -%s", contrast.name, deparseToString(sprintf("group.%s", right)), .multiple_group_coefs(right))
+                sprintf("%s[%s] <- %s", contrast.name, deparseToString(sprintf("group.%s", groupings[[1]])), .multiple_group_coefs(groupings[[1]])),
+                sprintf("%s[%s] <- -%s", contrast.name, deparseToString(sprintf("group.%s", groupings[[2]])), .multiple_group_coefs(groupings[[2]]))
             )
 
         } else {
             info$type <- "anova"
+            info$groups <- unname(lapply(groupings, as.list))
+            all.names <- vapply(groupings, .multiple_group_names, "")
             if (is.null(info$title)) {
-                info$title <- sprintf("One-way ANOVA involving %s", paste(sprintf("`%s`", con), collapse=", "))
+                concat.names <- paste(sprintf("`%s`", all.names), collapse=", ")
+                info$title <- sprintf("One-way ANOVA involving %s", concat.names)
             }
-            info$groups <- con
 
             commands <- c(
                 sprintf("%s <- matrix(0, ncol(%s), %s)", contrast.name, design.name, ngroups - 1),
-                sprintf("rownames(%s) <- colnames(%s)", contrast.name ,design.name)
+                sprintf("rownames(%s) <- colnames(%s)", contrast.name, design.name)
             )
             for (j in seq_len(ngroups - 1)) {
-                commands <- c(commands, sprintf("%s[%s,%i] <- 1", contrast.name, deparseToString(paste0("group.", con[j])), j))
+                commands <- c(commands, 
+                    sprintf(
+                        "%s[%s,%i] <- %s",
+                        contrast.name,
+                        deparseToString(sprintf("group.%s", groupings[[j]])),
+                        j,
+                        .multiple_group_coefs(groupings[[j]])
+                    )
+                )
             }
 
-            last <- con[ngroups]
+            last <- groupings[[ngroups]]
             commands <- c(
                 commands,
-                sprintf("%s[%s,] <- -1", contrast.name, deparseToString(paste0("group.", last))),
-                sprintf("colnames(%s) <- paste0(%s, ' - ', %s)", contrast.name, deparseToString(head(con, -1)), deparseToString(last))
+                sprintf("%s[%s,] <- -%s", contrast.name, deparseToString(sprintf("group.%s", last)), .multiple_group_coefs(last)),
+                sprintf("colnames(%s) <- paste0(%s, ' - ', %s)", contrast.name, deparseToString(head(all.names, -1)), deparseToString(all.names[ngroups]))
             )
             info$commands <- commands
         }

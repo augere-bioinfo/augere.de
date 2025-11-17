@@ -140,10 +140,12 @@ We can test for differences between the averages of two sets of groups.
 
 ```{r, fig.show="hide"}
 output.sets.dir <- tempfile()
+
+# Specify a named vector between the 'resistant' and 'sensitive' sets of cell lines.
 res.sets <- runEdgeR(
     se,
     group="cell", 
-    comparisons=c("N052611", "N061011", "N080611", NA, "N61311"),
+    comparisons=c(resistant="N052611", resistant="N061011", sensitive="N080611", sensitive="N61311"),
     output.dir=output.sets.dir,
     save.results=FALSE # not writing to disk to save time.
 )
