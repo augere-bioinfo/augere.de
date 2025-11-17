@@ -75,6 +75,7 @@
 #'
 #' @export
 #' @import augere.core
+#' @importFrom edgeR glmQLFit
 runEdgeR <- function(
     x,
     groups, 

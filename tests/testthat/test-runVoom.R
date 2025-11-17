@@ -27,8 +27,8 @@ test_that("runVoom works with vanilla settings", {
     expect_true(all(is.na(out$results[[1]]$FDR[!rowData(out$normalized)$retained])))
 
     meta <- jsonlite::fromJSON(file.path(tmp, "results", "de-1", "_metadata.json"), simplifyVector=FALSE)
-    expect_identical(meta$differential_gene_expression$contrast$left, "C")
-    expect_identical(meta$differential_gene_expression$contrast$right, "A")
+    expect_identical(meta$differential_gene_expression$contrast$left, list("C"))
+    expect_identical(meta$differential_gene_expression$contrast$right, list("A"))
     expect_null(meta$differential_gene_expression$subset) # we shouldn't have any subsetting here.
 
     # Check that the default options are set here.

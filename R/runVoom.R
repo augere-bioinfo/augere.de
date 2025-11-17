@@ -46,6 +46,7 @@
 #'
 #' @export
 #' @import augere.core
+#' @importFrom limma voom
 runVoom <- function(
     x,
     groups, 

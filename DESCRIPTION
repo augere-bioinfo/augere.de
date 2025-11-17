@@ -9,19 +9,20 @@ Authors@R: person("Aaron", "Lun", role=c("cre", "aut"), email="infinite.monkeys.
 License: MIT + file LICENSE
 Imports:
     utils,
-    grDevices,
+    methods,
     limma,
     edgeR,
+    S4Vectors,
     augere.core,
-    alabaster.se,
-    jsonlite
+    alabaster.se
 Suggests:
     testthat,
     knitr,
     rmarkdown,
     BiocStyle,
     airway,
-    SummarizedExperiment
+    SummarizedExperiment,
+    jsonlite
 VignetteBuilder: knitr    
 RoxygenNote: 7.3.3
 Encoding: UTF-8

@@ -11,6 +11,7 @@
 #' loadExampleDataset()
 #' 
 #' @export
+#' @importFrom utils data
 loadExampleDataset <- function() {
     if (is.null(cached$object)) {
         env <- new.env()
