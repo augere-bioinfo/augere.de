@@ -19,7 +19,7 @@
 #' see \code{\link{processSimpleDesignMatrix}} for more details.
 #' Ignored if \code{design} and \code{contrasts} are provided.
 #' @param assay String or integer specifying the assay of \code{x} containing the count matrix.
-#' @param row.data Character vector specifying the \code{\link[SummarizedExperiment]{rowData}(x)} columns containing extra gene annotations to include in the DE result data frames.
+#' @param row.data Character vector specifying the \code{\link[SummarizedExperiment]{rowData}(x)} columns containing extra gene annotations to include in the result DataFrames.
 #' @param subset.factor String specifying the \code{\link[SummarizedExperiment]{colData}(x)} column containing the factor to use for subsetting.
 #' @param subset.levels Vector containing the levels of the \code{subset.factor} to be retained.
 #' @param subset.groups Boolean indicating whether to automatically subset the dataset to only those samples assigned to groups in \code{comparisons}.
@@ -40,6 +40,7 @@
 #' @param metadata Named list of additional metadata to store alongside each result.
 #' @param output.dir String containing the path to an output directory in which to write the Rmarkdown file and save results.
 #' @param author Character vector containg the names of the authors.
+#' If \code{NULL}, defaults to the current user.
 #' @param dry.run Boolean indicating whether to perform a dry run.
 #' This generates the Rmarkdown report in \code{output.dir} but does not execute the analysis.
 #' @param save.results Boolean indicating whether the results should be saved to file.

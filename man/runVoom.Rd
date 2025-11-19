@@ -84,13 +84,14 @@ If zero, \code{\link[limma]{eBayes}} will be used instead.}
 
 \item{assay}{String or integer specifying the assay of \code{x} containing the count matrix.}
 
-\item{row.data}{Character vector specifying the \code{\link[SummarizedExperiment]{rowData}(x)} columns containing extra gene annotations to include in the DE result data frames.}
+\item{row.data}{Character vector specifying the \code{\link[SummarizedExperiment]{rowData}(x)} columns containing extra gene annotations to include in the result DataFrames.}
 
 \item{metadata}{Named list of additional metadata to store alongside each result.}
 
 \item{output.dir}{String containing the path to an output directory in which to write the Rmarkdown file and save results.}
 
-\item{author}{Character vector containg the names of the authors.}
+\item{author}{Character vector containg the names of the authors.
+If \code{NULL}, defaults to the current user.}
 
 \item{dry.run}{Boolean indicating whether to perform a dry run.
 This generates the Rmarkdown report in \code{output.dir} but does not execute the analysis.}
