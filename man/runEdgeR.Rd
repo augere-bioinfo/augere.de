@@ -64,7 +64,7 @@ If this and \code{contrasts} are specified, \code{groups}, \code{block}, \code{c
 \item{contrasts}{String, function or matrix specifying a custom contrast, or a list of such objects; see \code{\link{processCustomContrasts}} for details.
 If this and \code{design} are specified, \code{groups}, \code{block}, \code{covariates}, \code{comparisons} and \code{subset.groups} are ignored.}
 
-\item{robust}{Boolean indicating whether robust empirical Bayes shrinkage should be used in \code{\link[edgeR]{glmQLFit}}. 
+\item{robust}{Boolean indicating whether robust empirical Bayes shrinkage should be used in \code{\link[edgeR]{glmQLFit}}.
 Setting this to \code{TRUE} sacrifices some precision for improved robustness against genes with extreme dispersions.}
 
 \item{trend}{Boolean indicating whether to shrink the QL dispersions towards a trend fitted to the mean in \code{\link[edgeR]{glmQLFit}}.
@@ -111,8 +111,8 @@ x <- loadExampleDataset()
 
 tmp <- tempfile()
 out <- runEdgeR(
-    x, 
-    groups="dex", 
+    x,
+    groups="dex",
     comparisons=c("trt", "untrt"),
     output=tmp
 )

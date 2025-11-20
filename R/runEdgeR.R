@@ -1,6 +1,6 @@
 #' Differential expression analysis with edgeR
 #'
-#' Test for differentially expressed (DE) genes from an RNA-seq count matrix using the quasi-likelihood (QL) framework in \pkg{edgeR}. 
+#' Test for differentially expressed (DE) genes from an RNA-seq count matrix using the quasi-likelihood (QL) framework in \pkg{edgeR}.
 #'
 #' @param x A \link[SummarizedExperiment]{SummarizedExperiment} object containing a count matrix where genes and samples are in rows and columns, respectively.
 #' Alternatively, the output of \code{\link[augere.core]{wrapInput}} that refers to a SummarizedExperiment.
@@ -26,7 +26,7 @@
 #' Setting this to \code{TRUE} sacrifices some residual degrees of freedom for greater robustness against variability in irrelevant groups.
 #' Ignored if \code{design} and \code{contrasts} are provided.
 #' Also ignored if \code{covariates} is provided, as all samples are informative for a continuous covariate.
-#' @param robust Boolean indicating whether robust empirical Bayes shrinkage should be used in \code{\link[edgeR]{glmQLFit}}. 
+#' @param robust Boolean indicating whether robust empirical Bayes shrinkage should be used in \code{\link[edgeR]{glmQLFit}}.
 #' Setting this to \code{TRUE} sacrifices some precision for improved robustness against genes with extreme dispersions.
 #' @param trend Boolean indicating whether to shrink the QL dispersions towards a trend fitted to the mean in \code{\link[edgeR]{glmQLFit}}.
 #' Setting this to \code{TRUE} allows the analysis to adapt to difference mean-variance relationships, at the cost of some extra computational work.
@@ -62,11 +62,11 @@
 #'
 #' @examples
 #' x <- loadExampleDataset()
-#' 
+#'
 #' tmp <- tempfile()
 #' out <- runEdgeR(
-#'     x, 
-#'     groups="dex", 
+#'     x,
+#'     groups="dex",
 #'     comparisons=c("trt", "untrt"),
 #'     output=tmp
 #' )
@@ -79,25 +79,25 @@
 #' @importFrom edgeR glmQLFit
 runEdgeR <- function(
     x,
-    groups, 
-    comparisons, 
-    covariates=NULL,
-    block=NULL, 
-    subset.factor=NULL, 
-    subset.levels=NULL, 
-    subset.groups=TRUE,
-    design=NULL, 
-    contrasts=NULL, 
-    robust=TRUE, 
-    trend=TRUE,
-    lfc.threshold=0, 
-    assay=1, 
-    row.data=NULL, 
-    metadata=NULL,
-    output.dir="edgeR", 
-    author=NULL,
-    dry.run=FALSE, 
-    save.results=TRUE
+    groups,
+    comparisons,
+    covariates = NULL,
+    block = NULL,
+    subset.factor = NULL,
+    subset.levels = NULL,
+    subset.groups = TRUE,
+    design = NULL,
+    contrasts = NULL,
+    robust = TRUE,
+    trend = TRUE,
+    lfc.threshold = 0,
+    assay = 1,
+    row.data = NULL,
+    metadata = NULL,
+    output.dir = "edgeR",
+    author = NULL,
+    dry.run = FALSE,
+    save.results = TRUE
 ) {
     restore.fun <- resetInputCache()
     on.exit(restore.fun(), after=FALSE, add=TRUE)
@@ -164,8 +164,10 @@ runEdgeR <- function(
             copy[["treat"]] <- replacePlaceholders(copy[["treat"]], list(THRESHOLD=deparseToString(lfc.threshold)))
         }
 
-        if (!is.null(row.data)) {
-            copy[["attach-rowdata"]] <- sprintf("de.df <- cbind(SummarizedExperiment::rowData(se)[,%s,drop=FALSE], de.df)", deparseToString(row.data))
+        if (is.null(row.data)) {
+            copy[["attach-rowdata"]] <- NULL
+        } else {
+            copy[["attach-rowdata"]] <- replacePlaceholders(copy[["attach-rowdata"]], list(ROWDATA_FIELDS=deparseToString(row.data)))
         }
 
         meta.cmds <- processContrastMetadata(current)
@@ -173,11 +175,9 @@ runEdgeR <- function(
         meta.cmds[1] <- paste0("    contrast=", meta.cmds[1])
         meta.cmds[length(meta.cmds)] <- paste0(meta.cmds[length(meta.cmds)], ",")
         copy[["diff-metadata"]] <- meta.cmds
-
-        if (!is.null(subset.factor)) {
-            copy[["subset-metadata"]] <- paste0(strrep(" ", 12), "subset=subset.meta,")
+        if (is.null(subset.factor)) {
+            copy[["subset-metadata"]] <- NULL
         }
-
         if (!merge.metadata) {
             copy[["merge-metadata"]] <- NULL
         } else {

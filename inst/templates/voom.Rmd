@@ -1,6 +1,6 @@
 # Model fitting
 
-The voom method uses the empirical mean-variance trend to compute a weight for each observation. 
+voom uses the empirical mean-variance trend to compute a weight for each observation. 
 In this manner, log-CPMs derived from low counts are downweighted to reflect their lower precision.
 :BEGIN quality-text
 We estimate sample-specific quality weights to reduce the impact of outlier replicates without resorting to their removal.
@@ -37,7 +37,7 @@ Once the precision weights are computed, we fit the linear model for each gene.
 fit <- lmFit(v<%= LM_OPTS %>)
 ```
 
-This is followed by empirical Bayes shrinkage, which shares information across genes to stabilize the variance estimates.
+Empirical Bayes shrinkage shares information across genes to stabilize the variance estimates.
 The estimated prior degrees of freedom (d.f.) represents the variability of the variances across genes, typically ranging from 5 to 20.
 Large values indicate that the variances were consistent across features, allowing us to perform more aggressive shrinkage for greater power.
 :BEGIN robust-text
@@ -45,14 +45,14 @@ We enable robustification to ensure that highly variable genes (or very small va
 :END
 
 ```{r}
+fit <- limma::eBayes(fit<%= EB_OPTS %>)
 summary(fit$df.prior)
 ```
 
-We can also examine the mean-variance relationship for the shrunk estimates.
+We examine the mean-variance relationship for the shrunk estimates.
 Ideally, there should be no trend at all as it should have been handled by the observation weights.
 
 ```{r, fig.cap="Residual standard deviation (sigma) plotted against the mean log-CPM. Each point represents a gene<%= EXTRA_EB_CAPT %>."}
-fit <- limma::eBayes(fit<%= EB_OPTS %>)
 limma::plotSA(fit)
 ```
 
@@ -153,6 +153,7 @@ de.df <- de.df[match(seq_len(nrow(se)), de.df$origin),]
 de.df$origin <- NULL
 rownames(de.df) <- rownames(se)
 :BEGIN attach-rowdata
+de.df <- cbind(SummarizedExperiment::rowData(se)[,<%= ROWDATA_FIELDS %>,drop=FALSE], de.df)
 :END
 ```
 
@@ -191,6 +192,7 @@ de.meta <- list(
 :BEGIN diff-metadata
 :END
 :BEGIN subset-metadata
+        subset=subset.meta,
 :END
         method="voom-limma"
     )

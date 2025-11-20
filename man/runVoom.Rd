@@ -67,7 +67,7 @@ If this and \code{contrasts} are specified, \code{groups}, \code{block}, \code{c
 If this and \code{design} are specified, \code{groups}, \code{block}, \code{covariates}, \code{comparisons} and \code{subset.groups} are ignored.}
 
 \item{dc.block}{String specifying the blocking factor to use in \code{\link[limma]{duplicateCorrelation}}.
-Typically used for uninteresting factors that cannot be used in \code{block} as they are confounded with the factors of interest. 
+Typically used for uninteresting factors that cannot be used in \code{block} as they are confounded with the factors of interest.
 No additional blocking is performed if \code{NULL}.}
 
 \item{robust}{Boolean indicating whether robust empirical Bayes shrinkage should be used in \code{\link[limma]{eBayes}}.
@@ -120,7 +120,7 @@ x <- loadExampleDataset()
 tmp <- tempfile()
 out <- runVoom(
     x,
-    groups="dex", 
+    groups="dex",
     comparisons=c("trt", "untrt"),
     output=tmp
 )

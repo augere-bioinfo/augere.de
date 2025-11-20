@@ -4,11 +4,11 @@
 #'
 #' @inheritParams runEdgeR
 #' @param trend Boolean indicating whether variances should be shrunk towards a trend in \code{\link[limma]{eBayes}}.
-#' Usually unnecessary as the observation weights already account for the mean-variance relationship. 
+#' Usually unnecessary as the observation weights already account for the mean-variance relationship.
 #' @param quality Boolean indicating whether quality weighting should be performed.
-#' This reduces the influence of low-quality samples at the cost of more computational work. 
+#' This reduces the influence of low-quality samples at the cost of more computational work.
 #' @param dc.block String specifying the blocking factor to use in \code{\link[limma]{duplicateCorrelation}}.
-#' Typically used for uninteresting factors that cannot be used in \code{block} as they are confounded with the factors of interest. 
+#' Typically used for uninteresting factors that cannot be used in \code{block} as they are confounded with the factors of interest.
 #' No additional blocking is performed if \code{NULL}.
 #' @param robust Boolean indicating whether robust empirical Bayes shrinkage should be used in \code{\link[limma]{eBayes}}.
 #' Setting this to \code{TRUE} sacrifices some precision for improved robustness against genes with extreme variances.
@@ -32,11 +32,11 @@
 #'
 #' @examples
 #' x <- loadExampleDataset()
-#' 
+#'
 #' tmp <- tempfile()
 #' out <- runVoom(
 #'     x,
-#'     groups="dex", 
+#'     groups="dex",
 #'     comparisons=c("trt", "untrt"),
 #'     output=tmp
 #' )
@@ -49,27 +49,27 @@
 #' @importFrom limma voom
 runVoom <- function(
     x,
-    groups, 
-    comparisons, 
-    covariates=NULL,
-    block=NULL, 
-    subset.factor=NULL, 
-    subset.levels=NULL, 
-    subset.groups=TRUE,
-    design=NULL, 
-    contrasts=NULL, 
-    dc.block=NULL,
-    robust=TRUE, 
-    trend=FALSE,
-    quality=TRUE,
-    lfc.threshold=0, 
-    assay=1, 
-    row.data=NULL, 
-    metadata=NULL,
-    output.dir="voom", 
-    author=NULL,
-    dry.run=FALSE, 
-    save.results=TRUE
+    groups,
+    comparisons,
+    covariates = NULL,
+    block = NULL,
+    subset.factor = NULL,
+    subset.levels = NULL,
+    subset.groups = TRUE,
+    design = NULL,
+    contrasts = NULL,
+    dc.block = NULL,
+    robust = TRUE,
+    trend = FALSE,
+    quality = TRUE,
+    lfc.threshold = 0,
+    assay = 1,
+    row.data = NULL,
+    metadata = NULL,
+    output.dir = "voom",
+    author = NULL,
+    dry.run = FALSE,
+    save.results = TRUE
 ) {
     restore.fun <- resetInputCache()
     on.exit(restore.fun(), after=FALSE, add=TRUE)
@@ -163,8 +163,10 @@ runVoom <- function(
             )
         }
 
-        if (!is.null(row.data)) {
-            copy[["attach-rowdata"]] <- sprintf("de.df <- cbind(SummarizedExperiment::rowData(se)[,%s,drop=FALSE], de.df)", deparseToString(row.data))
+        if (is.null(row.data)) {
+            copy[["attach-rowdata"]] <- NULL
+        } else {
+            copy[["attach-rowdata"]] <- replacePlaceholders(copy[["attach-rowdata"]], list(ROWDATA_FIELDS=deparseToString(row.data)))
         }
 
         meta.cmds <- processContrastMetadata(current)
@@ -172,11 +174,9 @@ runVoom <- function(
         meta.cmds[1] <- paste0("    contrast=", meta.cmds[1])
         meta.cmds[length(meta.cmds)] <- paste0(meta.cmds[length(meta.cmds)], ",")
         copy[["diff-metadata"]] <- meta.cmds
-
-        if (!is.null(subset.factor)) {
-            copy[["subset-metadata"]] <- paste0(strrep(" ", 12), "subset=subset.meta,")
+        if (is.null(subset.factor)) {
+            copy[["subset-metadata"]] <- NULL
         }
-
         if (!merge.metadata) {
             copy[["merge-metadata"]] <- NULL
         } else {

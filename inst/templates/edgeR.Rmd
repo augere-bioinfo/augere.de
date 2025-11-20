@@ -132,6 +132,7 @@ de.df <- de.df[match(seq_len(nrow(se)), de.df$origin),]
 de.df$origin <- NULL
 rownames(de.df) <- rownames(se)
 :BEGIN attach-rowdata
+de.df <- cbind(SummarizedExperiment::rowData(se)[,<%= ROWDATA_FIELDS %>,drop=FALSE], de.df)
 :END
 ```
 
@@ -169,6 +170,7 @@ de.meta <- list(
 :BEGIN diff-metadata
 :END
 :BEGIN subset-metadata
+        subset=subset.meta,
 :END
         method="edgeR QL"
     )

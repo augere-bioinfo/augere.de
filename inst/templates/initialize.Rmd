@@ -43,7 +43,7 @@ ncol(se)
 ```
 :END
 
-We move extract the information into a `DGEList` object in preparation for analysis.
+We extract the information into a `DGEList` object in preparation for analysis.
 
 ```{r}
 y <- edgeR::DGEList(SummarizedExperiment::assay(se, <%= ASSAY %>))
@@ -98,7 +98,7 @@ which represent the combined effect of library size differences and composition 
 barplot(y$samples$norm.factors)
 ```
 
-We the normalization results by creating MD (mean-difference) plots.
+We inspect the normalization results by creating MD (mean-difference) plots.
 Ideally, the log-fold changes for most genes should be centered around zero if the normalization was successful.
 
 ```{r, fig.wide=TRUE, fig.asp=1/3, fig.cap="Mean-difference plots for each sample against the average reference of all other samples. Each plot corresponds to a sample while each point represents a gene."}
