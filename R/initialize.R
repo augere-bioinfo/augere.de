@@ -58,7 +58,7 @@
 
             group.levels <- NULL
             if (subset.groups) {
-                group.levels <- .find_used_groups(contrast.info)
+                group.levels <- findSubsetGroups(contrast.info)
             }
             if (!is.null(group.levels)) {
                 parsed[["subset-group"]] <- replacePlaceholders(
@@ -78,15 +78,4 @@
         text=replacePlaceholders(parsed, replacements),
         contrasts=contrast.info
     )
-}
-
-.find_used_groups <- function(contrast.info) {
-    # We don't want to throw out potentially relevant information.
-    not.grouped <- vapply(contrast.info, function(con) con$type %in% "covariate", TRUE)
-    if (any(not.grouped)) {
-        return(NULL)
-    }
-
-    all.groups <- lapply(contrast.info, function(con) con[c("left", "right", "groups")])
-    group.levels <- sort(unique(unlist(all.groups)))
 }

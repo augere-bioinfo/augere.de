@@ -167,23 +167,6 @@ test_that(".initialize() works with covariates + group but only the covariates a
     expect_true(any(grepl("filterByExpr\\(.*group=", unlist(output$text))))
 })
 
-test_that(".find_used_groups() works as expected", {
-    contrast.info <- processSimpleComparisons(c("A", "B"))
-    expect_identical(augere.de:::.find_used_groups(contrast.info), c("A", "B"))
-
-    contrast.info <- processSimpleComparisons(list(c("A", "B"), c("B", "C", "D")))
-    expect_identical(augere.de:::.find_used_groups(contrast.info), c("A", "B", "C", "D"))
-
-    contrast.info <- processSimpleComparisons(list(c("age"), c("C", "D")))
-    expect_null(augere.de:::.find_used_groups(contrast.info))
-
-    contrast.info <- processSimpleComparisons(c(foo="C", bar="A", foo="D"))
-    expect_identical(augere.de:::.find_used_groups(contrast.info), c("A", "C", "D"))
-
-    contrast.info <- processSimpleComparisons("foo")
-    expect_null(augere.de:::.find_used_groups(contrast.info))
-})
-
 test_that(".initialize() works with custom matrices and contrasts", {
     fun <- augere.core::resetInputCache()
     on.exit(fun(), add=TRUE, after=TRUE)
