@@ -21,12 +21,14 @@ test_that("runVoom works with vanilla settings", {
     expect_true(any(!filtered))
 
     expect_identical(names(out$results), "Increase in `C` over `A`")
-    expect_s4_class(out$results[[1]], "DFrame") 
+    expect_s4_class(out$results[[1]], "DFrame")
     expect_identical(rownames(out$results[[1]]), rownames(se))
     expect_false(anyNA(out$results[[1]]$FDR[rowData(out$normalized)$retained]))
     expect_true(all(is.na(out$results[[1]]$FDR[!rowData(out$normalized)$retained])))
 
-    meta <- jsonlite::fromJSON(file.path(tmp, "results", "de-1", "_metadata.json"), simplifyVector=FALSE)
+    roundtrip <- augere.core::readResult(file.path(tmp, "results", "de-1"))
+    expect_identical(roundtrip$x, out$results[[1]])
+    meta <- roundtrip$metadata
     expect_identical(meta$differential_gene_expression$contrast$left, list("C"))
     expect_identical(meta$differential_gene_expression$contrast$right, list("A"))
     expect_null(meta$differential_gene_expression$subset) # we shouldn't have any subsetting here.
@@ -45,19 +47,34 @@ test_that("runVoom works with multiple comparisons", {
     tmp <- tempfile()
     out <- runVoom(se, group="group", comparisons=list(foo=c("C", "A"), bar=c("B", "D")), output.dir=tmp)
     expect_identical(names(out$results), c("foo", "bar"))
+    expect_match(augere.core::readResult(file.path(tmp, "results", "de-1"))$meta$title, "foo")
+    expect_match(augere.core::readResult(file.path(tmp, "results", "de-2"))$meta$title, "bar")
 
     tmp1 <- tempfile()
-    alone1 <- runVoom(se, group="group", comparisons=c("C", "A"), subset.group=FALSE, output.dir=tmp1)
+    alone1 <- runVoom(se, group="group", comparisons=c("C", "A"), subset.group=FALSE, save.results=FALSE, output.dir=tmp1)
     expect_identical(out$results$foo, alone1$results[[1]])
 
     tmp2 <- tempfile()
-    alone2 <- runVoom(se, group="group", comparisons=c("B", "D"), subset.group=FALSE, output.dir=tmp2)
+    alone2 <- runVoom(se, group="group", comparisons=c("B", "D"), subset.group=FALSE, save.results=FALSE, output.dir=tmp2)
     expect_identical(out$results$bar, alone2$results[[1]])
+})
+
+test_that("runVoom works with custom design and contrasts", {
+    tmp <- tempfile()
+    custom <- runVoom(se, design=~0 + group, contrasts="groupB - groupA", output.dir=tmp)
+    meta <- augere.de::readResult(file.path(tmp, "results", "de-1"))$metadata
+    expect_identical(meta$differential_gene_expression$contrast$type, "custom")
+
+    # Making sure we get the same results with a simple design.
+    tmp <- tempfile()
+    comp <- runVoom(se, group="group", comparisons=c("B", "A"), subset.group=FALSE, save.results=FALSE, output.dir=tmp)
+    expect_identical(custom$normalized, comp$normalized)
+    expect_identical(unname(custom$results), unname(comp$results))
 })
 
 test_that("runVoom works with log-fold changes", {
     tmp <- tempfile()
-    out <- runVoom(se, group="group", comparisons=c("C", "A"), lfc.threshold=0.5, output.dir=tmp)
+    out <- runVoom(se, group="group", comparisons=c("C", "A"), lfc.threshold=0.5, save.results=FALSE, output.dir=tmp)
 
     fname <- readLines(file.path(tmp, "report.Rmd"))
     expect_true(any(grepl("treat\\(.*lfc=0.5", fname)))
@@ -68,16 +85,17 @@ test_that("runVoom works with custom subsetting", {
     out <- runVoom(se, group="group", comparisons=c("C", "A"), subset.factor="batch", subset.levels=c("1","3","5"), output.dir=tmp)
 
     # Subsetting works correctly.
+    expect_lt(ncol(out$normalized), ncol(se))
     expect_identical(unique(out$normalized$batch), factor(c("1", "3", "5"), 1:5))
 
-    meta <- jsonlite::fromJSON(file.path(tmp, "results", "de-1", "_metadata.json"), simplifyVector=FALSE)
+    meta <- augere.core::readResult(file.path(tmp, "results", "de-1"))$metadata
     expect_identical(meta$differential_gene_expression$subset, "batch IN (1,3,5)")
 })
 
 test_that("runVoom works with more annotations", {
     tmp <- tempfile()
     rowData(se)$symbol <- sprintf("FOOBAR_%s", seq_len(nrow(se)))
-    out <- runVoom(se, group="group", comparisons=c("C", "A"), row.data="symbol", output.dir=tmp)
+    out <- runVoom(se, group="group", comparisons=c("C", "A"), row.data="symbol", save.results=FALSE, output.dir=tmp)
 
     expect_identical(out$results[[1]]$symbol, rowData(se)$symbol)
     expect_type(out$results[[1]]$FDR, "double") # make sure we didn't wipe out the other columns.
@@ -89,18 +107,18 @@ test_that("runVoom works with custom metadata", {
     tmp <- tempfile()
     out <- runVoom(se, group="group", comparisons=c("C", "A"), metadata=list(X=1, Y=TRUE), output.dir=tmp)
 
-    meta <- jsonlite::fromJSON(file.path(tmp, "results", "de-1", "_metadata.json"), simplifyVector=FALSE)
+    meta <- augere.core::readResult(file.path(tmp, "results", "de-1"))$metadata
     expect_identical(meta$X, 1L)
     expect_true(meta$Y)
 
-    meta <- jsonlite::fromJSON(file.path(tmp, "results", "normalized", "_metadata.json"), simplifyVector=FALSE)
+    meta <- augere.core::readResult(file.path(tmp, "results", "normalized"))$metadata
     expect_identical(meta$X, 1L)
     expect_true(meta$Y)
 })
 
 test_that("runVoom works with duplicateCorrelation", {
     tmp <- tempfile()
-    out <- runVoom(se, group="group", comparisons=c("C", "A"), dc.block="batch", output.dir=tmp)
+    out <- runVoom(se, group="group", comparisons=c("C", "A"), dc.block="batch", save.results=FALSE, output.dir=tmp)
 
     fname <- readLines(file.path(tmp, "report.Rmd"))
     expect_true(any(grepl("duplicateCorrelation(", fname, fixed=TRUE)))
@@ -108,7 +126,7 @@ test_that("runVoom works with duplicateCorrelation", {
 
 test_that("runVoom works with some of the other voom-related options", {
     tmp <- tempfile()
-    out <- runVoom(se, group="group", comparisons=c("C", "A"), robust=FALSE, trend=TRUE, quality=FALSE, output.dir=tmp)
+    out <- runVoom(se, group="group", comparisons=c("C", "A"), robust=FALSE, trend=TRUE, quality=FALSE, save.result=FALSE, output.dir=tmp)
 
     fname <- readLines(file.path(tmp, "report.Rmd"))
     expect_false(any(grepl("voomWithQualityWeights(", fname, fixed=TRUE)))
