@@ -26,15 +26,15 @@ dc$consensus.correlation
 :BEGIN voom
 ```{r voom}
 library(limma)
-v <- <%= VOOM_CMD %>(y, design=design, plot=TRUE)
+v <- limma::<%= VOOM_CMD %>(y, design=design, plot=TRUE)
 ```
 :END
 
 Once the precision weights are computed, we fit the linear model for each gene. 
 
 ```{r}
-# 'design' is implicitly passed via 'v'.
-fit <- lmFit(v<%= LM_OPTS %>)
+# 'v' stores 'design' so we don't have to pass it explicitly.
+fit <- limma::lmFit(v<%= LM_OPTS %>)
 ```
 
 Empirical Bayes shrinkage shares information across genes to stabilize the variance estimates.
@@ -115,7 +115,7 @@ fit2 <- limma::eBayes(fit2<%= EB_OPTS %>)
 We retrieve a table of per-gene DE statistics:
 
 ```{r}
-tab <- topTable(fit2, n=Inf, sort.by="none")
+tab <- limma::topTable(fit2, n=Inf, sort.by="none")
 tab[head(order(tab$P.Value)),]
 ```
 
@@ -132,11 +132,11 @@ summary(tab$FDR <= 0.05)
 Now making some diagnostic plots.
 
 ```{r, fig.cap='Mean-difference plot for this contrast. Each point represents a gene and is colored according to whether it was significantly up- or down-regulated at an FDR of 5%.', eval=is.null(dim(con)), echo=is.null(dim(con))}
-limma::plotMD(fit2, status=decideTests(fit2), hl.cex=0.5)
+limma::plotMD(fit2, status=limma::decideTests(fit2), hl.cex=0.5)
 ```
 
 ```{r, fig.cap='Volcano plot for this contrast. Each point represents a gene, colored according to whether it was significantly up- or down-regulated at an FDR of 5%. The dotted line represents the effective $p$-value threshold for significance.', eval=is.null(dim(con)), echo=is.null(dim(con))}
-volcanoplot(fit2)
+limma::volcanoplot(fit2)
 is.de <- tab$FDR <= 0.05
 if (any(is.de, na.rm=TRUE)) {
     eff.thresh <- max(tab$PValue[is.de], na.rm=TRUE)
