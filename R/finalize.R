@@ -1,6 +1,6 @@
 #' @import augere.core
 #' @importMethodsFrom alabaster.se saveObject
-.finalize <- function(assay, author, merge.metadata) {
+.finalize <- function(assay, author, merge.metadata, subset.metadata) {
     template <- system.file("templates", "finalize.Rmd", package="augere.de", mustWork=TRUE)
     parsed <- parseRmdTemplate(readLines(template))
 
@@ -8,6 +8,10 @@
         parsed[["merge-metadata"]] <- NULL
     } else {
         parsed[["no-merge-metadata"]] <- NULL
+    }
+
+    if (!subset.metadata) {
+        parsed[["subset-metadata"]] <- "    summarized_experiment=setNames(list(), character(0))"
     }
 
     replacePlaceholders(parsed,

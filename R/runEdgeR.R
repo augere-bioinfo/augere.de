@@ -222,7 +222,7 @@ runEdgeR <- function(
     parsed <- replacePlaceholders(parsed, replacements)
     writeRmd(parsed, file=fname, append=TRUE)
 
-    finish <- .finalize(assay, author, merge.metadata)
+    finish <- .finalize(assay, author, merge.metadata=merge.metadata, subset.metadata=!is.null(subset.factor))
     writeRmd(finish, file=fname, append=TRUE)
 
     if (dry.run) {

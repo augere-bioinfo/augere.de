@@ -20,7 +20,7 @@
 processContrastMetadata <- function(info) {
     first <- TRUE
     payload <- character(0)
-    for (field in setdiff(names(info), "commands")) {
+    for (field in setdiff(names(info), c("commands", "title"))) {
         if (!first) {
             payload[length(payload)] <- paste0(payload[length(payload)], ",")
         } else {

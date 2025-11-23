@@ -24,6 +24,7 @@ test_that("processContrastMetadata works for simple comparisons", {
         cmds <- processContrastMetadata(info[[i]])
         output <- eval(parse(text=cmds), envir=env)
         expected <- info[[i]]
+        expected$title <- NULL
         expected$commands <- NULL
         expect_identical(output, expected)
     }
@@ -46,6 +47,7 @@ test_that("processContrastMetadata works for custom contrasts", {
     cmds <- processContrastMetadata(info[[1]])
     output <- eval(parse(text=cmds), envir=env)
     expected <- info[[1]]
+    expected$title <- NULL
     expected$commands <- NULL
     expect_identical(output, expected)
 })

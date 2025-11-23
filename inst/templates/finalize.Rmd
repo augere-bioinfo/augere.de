@@ -22,7 +22,12 @@ And we save it.
 norm.meta <- list(
     title='Normalized RNA-seq data',
     authors=<%= AUTHOR %>,
-    type="summarized_experiment"
+    type="summarized_experiment",
+:BEGIN subset-metadata
+    summarized_experiment=list(
+        subset=subset.meta
+    )
+:END
 )
 
 augere.core::saveResult(
