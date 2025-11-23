@@ -50,8 +50,29 @@
 #'
 #' If \code{dry.run=FALSE}, a list is returned containing:
 #' \itemize{
-#' \item \code{results}, a list of \link[S4Vectors]{DataFrame}s of tables from all contrasts;
-#' \item \code{normalized}, a \link[SummarizedExperiment]{RangedSummarizedExperiment} with normalized expression values (possibly subsetted by sample).
+#' \item \code{results}, a list of \link[S4Vectors]{DataFrame}s of tables from all contrasts.
+#' Each DataFrame corresponds to a comparison/contrast where each row corresponds to a gene (i.e., row) in \code{se}.
+#' Each DataFrame contains the following columns:
+#' \itemize{
+#' \item \code{AveExpr}, the average abundance.
+#' \item \code{F}, the F-statistic.
+#' \item \code{LogFC}, the log-fold change.
+#' (For non-ANOVA-like contrasts only.)
+#' \item \code{LogFC.<COLUMN>}, the log-fold change corresponding to each column of the contrast matrix.
+#' (For ANOVA-like contrasts only.)
+#' \item \code{PValue}, the p-value;
+#' \item \code{FDR}, the Benjamini-Hochberg-adjusted p-value.
+#' }
+#' \item \code{normalized}, a copy of \code{x} with normalized expression values.
+#' This contains:
+#' \itemize{
+#' \item \code{lib.size} and \code{norm.factors} columns in its \code{\link[SummarizedExperiment]{colData}},
+#' containing the library sizes and normalization factors, respectively.
+#' \item a \code{retained} column in its \code{\link[SummarizedExperiment]{rowData}},
+#' indicating whether a gene was retained after filtering.
+#' \item a \code{logCPM} assay, containing the log-counts-per-million after normalization.
+#' }
+#' \code{normalized} may be subsetted by sample, depending on \code{subset.factor}, \code{subset.group}, etc.
 #' }
 #' If \code{save.results=TRUE}, the results are saved in a \code{results} directory inside \code{output}.
 #'
