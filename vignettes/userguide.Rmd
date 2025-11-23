@@ -42,11 +42,11 @@ se <- loadExampleDataset()
 output.dir <- tempfile()
 res <- runEdgeR(se, group="dex", comparisons=c("trt", "untrt"), output.dir=output.dir)
 
-# List of tables of DE results: 
+# List of tables of DE results.
 names(res$results)
 res$results[[1]]
 
-# SummarizedExperiment with normalized expression values.
+# Copy of 'se' with normalized expression values.
 res$normalized
 ```
 
@@ -62,12 +62,8 @@ The function will also save the results to file inside a `results` subdirectory,
 
 ```{r}
 reloaded <- readResult(file.path(output.dir, "results", "de-1"))
-
-# The result itself:
-reloaded$x
-
-# Along with some metadata:
-str(reloaded$metadata)
+reloaded$x # the result itself
+str(reloaded$metadata) # along with some metadata
 ```
 
 `runVoom()` does the same but for `voom()` instead of `r BiocStyle::Biocpkg("edgeR")`.
@@ -136,7 +132,8 @@ res.anova <- runEdgeR(
 )
 ```
 
-We can test for differences between the averages of two sets of groups.
+We test for differences between the averages of two sets of groups by passing a named character vector to `comparisons=`.
+Each unique name defines a set of groups, e.g., `resistant` versus `sensitive`.
 
 ```{r, fig.show="hide"}
 output.sets.dir <- tempfile()
@@ -151,7 +148,7 @@ res.sets <- runEdgeR(
 )
 ```
 
-We can perform multiple comparisons in a single call by passing a list of character vectors to `comparisons`.
+We perform multiple comparisons in a single call by passing a list of character vectors to `comparisons`.
 This can be convenient but does have some implications for subsetting, see [comments below](#subsetting).
 
 ```{r, fig.show="hide"}
@@ -248,28 +245,16 @@ for (i in seq_along(comparisons)) {
 # More output options
 
 As shown above, we can set `save.results=FALSE` to instruct `runEdgeR()` to not write results to disk.
-This is more efficient if we only want the results in the current R session.
+This is more efficient if we only need the results in the current R session.
 
 Setting `dry.run=TRUE` will instruct `runEdgeR()` to only generate the Rmarkdown report but not evaluate it.
-This can be helpful if further modifications to the report are intended.
+This can be helpful for generating a draft report for further refinement.
 
-```{r}
-output.dry.dir <- tempfile()
-runEdgeR(
-    se,
-    group="dex",
-    comparisons=c("trt", "untrt"),
-    output.dir=output.dry.dir,
-    dry.run=TRUE
-)
-list.files(output.dry.dir)
-```
-
-The generated report is not quite self-contained as `runEdgeR()` doesn't know how `se` was constructed.
+Careful readers will note that the auto-generated report is not quite self-contained as `runEdgeR()` doesn't know how `se` was constructed.
 In the absence of this information, the report contains a placeholder `stop()` to remind the user to insert the relevant commands:
 
 ```{r, echo=FALSE}
-fname <- file.path(output.dry.dir, "report.Rmd")
+fname <- file.path(output.dir, "report.Rmd")
 lines <- readLines(fname)
 has.stop <- grep("stop(", lines, fixed=TRUE)[1]
 cat(lines[has.stop + (-5):5], sep="\n")
@@ -278,6 +263,7 @@ cat(lines[has.stop + (-5):5], sep="\n")
 If we know how the object was generated, we can pass this information to `runEdgeR()`:
 
 ```{r}
+output.dry.dir <- tempfile()
 runEdgeR(
     wrapInput(se, commands="augere.de::loadExampleDataset()"),
     group="dex",
@@ -287,7 +273,7 @@ runEdgeR(
 )
 ```
 
-This allows `runEdgeR()` to insert the relevant commands into the report for full reproducibility:
+This instructs `runEdgeR()` to insert the relevant commands into the report for full reproducibility:
 
 ```{r, echo=FALSE}
 fname <- file.path(output.dry.dir, "report.Rmd")
@@ -296,7 +282,7 @@ has.loader <- grep("loadExampleDataset(", lines, fixed=TRUE)[1]
 cat(lines[has.loader + (-5):5], sep="\n")
 ```
 
-We can also attach more `rowData()` to the result tables or add custom fields to the result metadata:
+We can also attach `rowData()` columns to the result tables or add custom fields to the result metadata:
 
 ```{r, fig.show="hide"}
 output.custom.dir <- tempfile()
@@ -313,7 +299,7 @@ res <- runEdgeR(
     output.dir=output.custom.dir
 )
 
-# All the desired rowData columns are now included in the DF:
+# rowData columns are now included in the DF.
 res$results[[1]]
 
 # The custom metadata is also saved to disk.
