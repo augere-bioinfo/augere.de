@@ -1,11 +1,12 @@
 Package: augere.de
-Version: 0.99.0
-Date: 2025-11-12
+Version: 0.99.1
+Date: 2026-01-08
 Title: Automatic Generation of Differential Expression Analyses
 Description:
     Implements pipelines for generating differential expression analysis reports in the augere framework.
-    This includes analyses with edgeR and with voom-limma.
-Authors@R: person("Aaron", "Lun", role=c("cre", "aut"), email="infinite.monkeys.with.keyboards@gmail.com")
+    This includes analyses with edgeR or voom-limma, with a variety of options for contrasts, blocking and covariates.
+    Each pipeline function generates a self-contained Rmarkdown report with all of the steps required to reproduce the DE analysis. 
+Authors@R: person("Aaron", "Lun", role=c("cre", "aut"), email="infinite.monkeys.with.keyboards@gmail.com", comment=c(ORCID="0000-0002-3564-4813"))
 License: MIT + file LICENSE
 Imports:
     utils,
@@ -25,3 +26,10 @@ Suggests:
 VignetteBuilder: knitr    
 RoxygenNote: 7.3.3
 Encoding: UTF-8
+URL: https://github.com/augere-bioinfo/augere.de
+BugReports: https://github.com/augere-bioinfo/augere.de/issues
+biocViews:
+    WorkflowManagement,
+    ReportWriting,
+    DifferentialExpression,
+    Transcription

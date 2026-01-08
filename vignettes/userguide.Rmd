@@ -23,13 +23,20 @@ set.seed(1000)
 
 # Overview
 
-`r self` implements **augere** pipelines for differential expression (DE) analysis of RNA-seq data based on `r BiocStyle::Biocpkg("edgeR")` and `voom()`.
+`r self` implements [**augere** pipelines](https://github.com/augere-bioinfo) for differential expression (DE) analysis of RNA-seq data based on `r BiocStyle::Biocpkg("edgeR")` and `voom()`.
 Each analysis pipeline creates a self-contained Rmarkdown report that documents each step in the DE analysis,
 after which it compiles the report and returns the analysis results to the user in the current R session.
 We can then inspect the report to determine exactly how the analysis was performed. 
 We can also modify the report to customize the analysis beyond the options provided by the pipeline function.
 
 # Quick start
+
+To install this package, follow the usual [instructions for Bioconductor](https://bioconductor.org/install):
+
+```r
+install.packages("BiocManager") # if not already available
+BiocManager::install("augere.de")
+```
 
 Let's demonstrate on a dataset derived from the `r BiocStyle::Biocpkg("airway")` package.
 This has two groups (treated and untreated) so the parametrization of the analysis is fairly simple:
