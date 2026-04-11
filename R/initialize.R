@@ -79,3 +79,5 @@
         contrasts=contrast.info
     )
 }
+
+.initialize_fig_chunks <- c("plot-norm-factors", "plot-md-norm", "plot-mds")

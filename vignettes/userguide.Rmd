@@ -88,7 +88,10 @@ res.block <- runEdgeR(
     block="cell",
     comparisons=c("trt", "untrt"),
     output.dir=output.block.dir,
-    save.results=FALSE # not writing to disk to save time.
+
+    # Not writing to disk or generating plots to reduce runtime.
+    save.results=FALSE,
+    suppress.plots=TRUE
 )
 ```
 
@@ -106,7 +109,10 @@ res.cov <- runEdgeR(
     covariate="tumor_fraction",
     comparisons="tumor_fraction",
     output.dir=output.cov.dir,
-    save.results=FALSE # not writing to disk to save time.
+
+    # Not writing to disk or generating plots to reduce runtime.
+    save.results=FALSE,
+    suppress.plots=TRUE
 )
 ```
 
@@ -119,7 +125,10 @@ res.custom <- runEdgeR(
     design=~0 + dex + tumor_fraction,
     contrasts=c(dextrt = 1, dexuntrt = -1),
     output.dir=output.custom.dir,
-    save.results=FALSE # not writing to disk to save time.
+
+    # Not writing to disk or generating plots to reduce runtime.
+    save.results=FALSE,
+    suppress.plots=TRUE
 )
 ```
 
@@ -135,7 +144,10 @@ res.anova <- runEdgeR(
     group="cell",
     comparisons=c("N052611", "N061011", "N080611", "N61311"),
     output.dir=output.anova.dir,
-    save.results=FALSE # not writing to disk to save time.
+
+    # Not writing to disk or generating plots to reduce runtime.
+    save.results=FALSE,
+    suppress.plots=TRUE
 )
 ```
 
@@ -151,7 +163,10 @@ res.sets <- runEdgeR(
     group="cell", 
     comparisons=c(resistant="N052611", resistant="N061011", sensitive="N080611", sensitive="N61311"),
     output.dir=output.sets.dir,
-    save.results=FALSE # not writing to disk to save time.
+
+    # Not writing to disk or generating plots to reduce runtime.
+    save.results=FALSE,
+    suppress.plots=TRUE
 )
 ```
 
@@ -165,7 +180,10 @@ res.multiple <- runEdgeR(
     group="cell",
     comparisons=list(c("N052611", "N061011"), c("N080611", "N61311")),
     output.dir=output.multiple.dir,
-    save.results=FALSE # not writing to disk to save time.
+
+    # Not writing to disk or generating plots to reduce runtime.
+    save.results=FALSE,
+    suppress.plots=TRUE
 )
 names(res.multiple$results)
 ```
@@ -182,7 +200,10 @@ res.lfc <- runEdgeR(
     lfc.threshold=0.5,
     comparisons=c("trt", "untrt"),
     output.dir=output.lfc.dir,
-    save.results=FALSE # not writing to disk to save time.
+
+    # Not writing to disk or generating plots to reduce runtime.
+    save.results=FALSE,
+    suppress.plots=TRUE
 )
 ```
 
@@ -200,7 +221,10 @@ res.sub <- runEdgeR(
     subset.factor="cell",
     subset.levels=c("N052611", "N080611"),
     output.dir=output.lfc.dir,
-    save.results=FALSE # not writing to disk to save time.
+
+    # Not writing to disk or generating plots to reduce runtime.
+    save.results=FALSE,
+    suppress.plots=TRUE
 )
 ```
 
@@ -215,7 +239,10 @@ res.sub.group <- runEdgeR(
     group="cell",
     comparisons=c("N052611", "N061011"),
     output.dir=output.sub.group.dir,
-    save.results=FALSE # not writing to disk to save time
+
+    # Not writing to disk or generating plots to reduce runtime.
+    save.results=FALSE,
+    suppress.plots=TRUE
 )
 ```
 
@@ -232,7 +259,10 @@ combined.results <- runEdgeR(
     group="cell",
     comparisons=comparisons,
     output.dir=tempfile(),
-    save.results=FALSE
+
+    # Not writing to disk or generating plots to reduce runtime.
+    save.results=FALSE,
+    suppress.plots=TRUE
 )
 
 # Or, repeated calls with different comparisons, which is usually the safer
@@ -244,7 +274,10 @@ for (i in seq_along(comparisons)) {
         group="cell",
         comparisons=comparisons[[i]],
         output.dir=tempfile(),
-        save.results=FALSE
+
+        # Not writing to disk or generating plots to reduce runtime.
+        save.results=FALSE,
+        suppress.plots=TRUE
     )
 }
 ```

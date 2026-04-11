@@ -26,7 +26,8 @@ runVoom(
   output.dir = "voom",
   author = NULL,
   dry.run = FALSE,
-  save.results = TRUE
+  save.results = TRUE,
+  suppress.plots = FALSE
 )
 }
 \arguments{
@@ -97,6 +98,9 @@ If \code{NULL}, defaults to the current user.}
 This generates the Rmarkdown report in \code{output.dir} but does not execute the analysis.}
 
 \item{save.results}{Boolean indicating whether the results should be saved to file.}
+
+\item{suppress.plots}{Boolean indicating whether plots should be suppressed.
+This can be set to \code{TRUE} for faster execution.}
 }
 \value{
 A Rmarkdown report named \code{report.Rmd} is written inside \code{output.dir} that contains the analysis commands.

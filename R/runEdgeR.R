@@ -44,6 +44,8 @@
 #' @param dry.run Boolean indicating whether to perform a dry run.
 #' This generates the Rmarkdown report in \code{output.dir} but does not execute the analysis.
 #' @param save.results Boolean indicating whether the results should be saved to file.
+#' @param suppress.plots Boolean indicating whether plots should be suppressed.
+#' This can be set to \code{TRUE} for faster execution.
 #'
 #' @return
 #' A Rmarkdown report named \code{report.Rmd} is written inside \code{output.dir} that contains the analysis commands.
@@ -118,7 +120,8 @@ runEdgeR <- function(
     output.dir = "edgeR",
     author = NULL,
     dry.run = FALSE,
-    save.results = TRUE
+    save.results = TRUE,
+    suppress.plots = FALSE 
 ) {
     restore.fun <- resetInputCache()
     on.exit(restore.fun(), after=FALSE, add=TRUE)
@@ -172,6 +175,7 @@ runEdgeR <- function(
     contrasts <- vector("list", length(contrast.info))
     save.names <- character(length(contrast.info))
     author.txt <- deparseToString(as.list(author))
+    fig.chunks <- character(0)
 
     for (i in seq_along(contrast.info)) {
         copy <- parsed$contrast
@@ -213,8 +217,15 @@ runEdgeR <- function(
                 AUTHOR=author.txt,
                 CONTRAST_NAME_SIMPLE=current$title,
                 CONTRAST_NAME_DEPARSED=deparseToString(current$title),
+                CONTRAST_INDEX=i,
                 SAVING_CHUNK_NAME=save.name
             )
+        )
+
+        fig.chunks <- c(
+            fig.chunks,
+            paste0("plot-md-", i),
+            paste0("plot-volcano-", i)
         )
     }
 
@@ -234,8 +245,18 @@ runEdgeR <- function(
     } else {
         skip.chunks <- c('save-directory', save.names, "save-norm")
     }
+
+    if (suppress.plots) {
+        skip.chunks <- c(
+            skip.chunks,
+            .initialize_fig_chunks,
+            "plot-ql-disp",
+            fig.chunks
+        )
+    }
+
     env <- new.env()
-    compileReport(fname, env=env, skip.chunks=skip.chunks)
+    compileReport(fname, env=env, skip.chunks=skip.chunks, suppress.plots=suppress.plots)
 
     list(results=env$all.results, normalized=env$norm.se)
 }

@@ -10,7 +10,9 @@ rownames(se) <- sprintf("GENE_%s", seq_len(nrow(se)))
 
 test_that("runVoom works with vanilla settings", {
     tmp <- tempfile()
+    pdf(file=NULL)
     out <- runVoom(se, group="group", comparisons=c("C", "A"), output.dir=tmp)
+    dev.off()
 
     expect_s4_class(out$normalized, "SummarizedExperiment")
     expect_true("logCPM" %in% assayNames(out$normalized))
@@ -44,18 +46,22 @@ test_that("runVoom works with vanilla settings", {
 })
 
 test_that("runVoom works with multiple comparisons", {
+    # Check that saving and plotting works with multiple comparisons. 
     tmp <- tempfile()
+    pdf(file=NULL)
     out <- runVoom(se, group="group", comparisons=list(foo=c("C", "A"), bar=c("B", "D")), output.dir=tmp)
+    dev.off()
+
     expect_identical(names(out$results), c("foo", "bar"))
     expect_match(augere.core::readResult(file.path(tmp, "results", "de-1"))$meta$title, "foo")
     expect_match(augere.core::readResult(file.path(tmp, "results", "de-2"))$meta$title, "bar")
 
     tmp1 <- tempfile()
-    alone1 <- runVoom(se, group="group", comparisons=c("C", "A"), subset.group=FALSE, save.results=FALSE, output.dir=tmp1)
+    alone1 <- runVoom(se, group="group", comparisons=c("C", "A"), subset.group=FALSE, output.dir=tmp1, suppress.plots=TRUE, save.results=FALSE)
     expect_identical(out$results$foo, alone1$results[[1]])
 
     tmp2 <- tempfile()
-    alone2 <- runVoom(se, group="group", comparisons=c("B", "D"), subset.group=FALSE, save.results=FALSE, output.dir=tmp2)
+    alone2 <- runVoom(se, group="group", comparisons=c("B", "D"), subset.group=FALSE, output.dir=tmp2, suppress.plots=TRUE, save.results=FALSE)
     expect_identical(out$results$bar, alone2$results[[1]])
 })
 
@@ -67,14 +73,14 @@ test_that("runVoom works with custom design and contrasts", {
 
     # Making sure we get the same results with a simple design.
     tmp <- tempfile()
-    comp <- runVoom(se, group="group", comparisons=c("B", "A"), subset.group=FALSE, save.results=FALSE, output.dir=tmp)
+    comp <- runVoom(se, group="group", comparisons=c("B", "A"), subset.group=FALSE, output.dir=tmp, suppress.plots=TRUE, save.results=FALSE)
     expect_identical(custom$normalized, comp$normalized)
     expect_identical(unname(custom$results), unname(comp$results))
 })
 
 test_that("runVoom works with log-fold changes", {
     tmp <- tempfile()
-    out <- runVoom(se, group="group", comparisons=c("C", "A"), lfc.threshold=0.5, save.results=FALSE, output.dir=tmp)
+    out <- runVoom(se, group="group", comparisons=c("C", "A"), lfc.threshold=0.5, output.dir=tmp, suppress.plots=TRUE, save.results=FALSE)
 
     fname <- readLines(file.path(tmp, "report.Rmd"))
     expect_true(any(grepl("treat\\(.*lfc=0.5", fname)))
@@ -82,7 +88,7 @@ test_that("runVoom works with log-fold changes", {
 
 test_that("runVoom works with custom subsetting", {
     tmp <- tempfile()
-    out <- runVoom(se, group="group", comparisons=c("C", "A"), subset.factor="batch", subset.levels=c("1","3","5"), output.dir=tmp)
+    out <- runVoom(se, group="group", comparisons=c("C", "A"), subset.factor="batch", subset.levels=c("1","3","5"), output.dir=tmp, suppress.plots=TRUE)
 
     # Subsetting works correctly.
     expect_lt(ncol(out$normalized), ncol(se))
@@ -95,7 +101,7 @@ test_that("runVoom works with custom subsetting", {
 test_that("runVoom works with more annotations", {
     tmp <- tempfile()
     rowData(se)$symbol <- sprintf("FOOBAR_%s", seq_len(nrow(se)))
-    out <- runVoom(se, group="group", comparisons=c("C", "A"), row.data="symbol", save.results=FALSE, output.dir=tmp)
+    out <- runVoom(se, group="group", comparisons=c("C", "A"), row.data="symbol", output.dir=tmp, suppress.plots=TRUE, save.results=FALSE)
 
     expect_identical(out$results[[1]]$symbol, rowData(se)$symbol)
     expect_type(out$results[[1]]$FDR, "double") # make sure we didn't wipe out the other columns.
@@ -105,7 +111,7 @@ test_that("runVoom works with more annotations", {
 
 test_that("runVoom works with custom metadata", {
     tmp <- tempfile()
-    out <- runVoom(se, group="group", comparisons=c("C", "A"), metadata=list(X=1, Y=TRUE), output.dir=tmp)
+    out <- runVoom(se, group="group", comparisons=c("C", "A"), metadata=list(X=1, Y=TRUE), output.dir=tmp, suppress.plots=TRUE)
 
     meta <- augere.core::readResult(file.path(tmp, "results", "de-1"))$metadata
     expect_identical(meta$X, 1L)
@@ -118,7 +124,7 @@ test_that("runVoom works with custom metadata", {
 
 test_that("runVoom works with duplicateCorrelation", {
     tmp <- tempfile()
-    out <- runVoom(se, group="group", comparisons=c("C", "A"), dc.block="batch", save.results=FALSE, output.dir=tmp)
+    out <- runVoom(se, group="group", comparisons=c("C", "A"), dc.block="batch", output.dir=tmp, suppress.plots=TRUE, save.results=FALSE)
 
     fname <- readLines(file.path(tmp, "report.Rmd"))
     expect_true(any(grepl("duplicateCorrelation(", fname, fixed=TRUE)))
@@ -126,7 +132,7 @@ test_that("runVoom works with duplicateCorrelation", {
 
 test_that("runVoom works with some of the other voom-related options", {
     tmp <- tempfile()
-    out <- runVoom(se, group="group", comparisons=c("C", "A"), robust=FALSE, trend=TRUE, quality=FALSE, save.result=FALSE, output.dir=tmp)
+    out <- runVoom(se, group="group", comparisons=c("C", "A"), robust=FALSE, trend=TRUE, quality=FALSE, output.dir=tmp, suppress.plots=TRUE, save.results=FALSE)
 
     fname <- readLines(file.path(tmp, "report.Rmd"))
     expect_false(any(grepl("voomWithQualityWeights(", fname, fixed=TRUE)))
@@ -142,7 +148,7 @@ test_that("runVoom works with dry runs and no saving", {
     expect_true(file.exists(file.path(tmp, "report.Rmd")))
 
     tmp <- tempfile()
-    out <- runVoom(se, group="group", comparisons=c("C", "A"), save.results=FALSE, output.dir=tmp)
+    out <- runVoom(se, group="group", comparisons=c("C", "A"), output.dir=tmp, suppress.plots=TRUE, save.results=FALSE)
     expect_s4_class(out$normalized, "SummarizedExperiment")
     expect_s4_class(out$results[[1]], "DFrame")
     expect_false(file.exists(file.path(tmp, "results")))

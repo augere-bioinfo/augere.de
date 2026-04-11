@@ -10,7 +10,9 @@ rownames(se) <- sprintf("GENE_%s", seq_len(nrow(se)))
 
 test_that("runEdgeR works with vanilla settings", {
     tmp <- tempfile()
+    pdf(file=NULL)
     out <- runEdgeR(se, group="group", comparisons=c("C", "A"), output.dir=tmp)
+    dev.off()
 
     expect_s4_class(out$normalized, "SummarizedExperiment")
     expect_true("logCPM" %in% assayNames(out$normalized))
@@ -42,37 +44,41 @@ test_that("runEdgeR works with vanilla settings", {
 })
 
 test_that("runEdgeR works with multiple comparisons", {
+    # Check that saving and plotting works with multiple comparisons. 
     tmp <- tempfile()
+    pdf(file=NULL)
     out <- runEdgeR(se, group="group", comparisons=list(foo=c("C", "A"), bar=c("B", "D")), output.dir=tmp)
+    dev.off()
+
     expect_identical(names(out$results), c("foo", "bar"))
     expect_match(augere.core::readResult(file.path(tmp, "results", "de-1"))$meta$title, "foo")
     expect_match(augere.core::readResult(file.path(tmp, "results", "de-2"))$meta$title, "bar")
 
     tmp1 <- tempfile()
-    alone1 <- runEdgeR(se, group="group", comparisons=c("C", "A"), subset.group=FALSE, save.results=FALSE, output.dir=tmp1)
+    alone1 <- runEdgeR(se, group="group", comparisons=c("C", "A"), subset.group=FALSE, output.dir=tmp1, save.results=FALSE, suppress.plots=TRUE)
     expect_identical(out$results$foo, alone1$results[[1]])
 
     tmp2 <- tempfile()
-    alone2 <- runEdgeR(se, group="group", comparisons=c("B", "D"), subset.group=FALSE, save.results=FALSE, output.dir=tmp2)
+    alone2 <- runEdgeR(se, group="group", comparisons=c("B", "D"), subset.group=FALSE, output.dir=tmp2, save.results=FALSE, suppress.plots=TRUE)
     expect_identical(out$results$bar, alone2$results[[1]])
 })
 
 test_that("runEdgeR works with custom design and contrasts", {
     tmp <- tempfile()
-    custom <- runEdgeR(se, design=~0 + group, contrasts="groupB - groupA", output.dir=tmp)
+    custom <- runEdgeR(se, design=~0 + group, contrasts="groupB - groupA", output.dir=tmp, suppress.plots=TRUE)
     meta <- augere.de::readResult(file.path(tmp, "results", "de-1"))$metadata
     expect_identical(meta$differential_gene_expression$contrast$type, "custom")
 
     # Making sure we get the same results with a simple design.
     tmp <- tempfile()
-    comp <- runEdgeR(se, group="group", comparisons=c("B", "A"), subset.group=FALSE, save.results=FALSE, output.dir=tmp)
+    comp <- runEdgeR(se, group="group", comparisons=c("B", "A"), subset.group=FALSE, output.dir=tmp, save.results=FALSE, suppress.plots=TRUE)
     expect_identical(custom$normalized, comp$normalized)
     expect_identical(unname(custom$results), unname(comp$results))
 })
 
 test_that("runEdgeR works with log-fold changes", {
     tmp <- tempfile()
-    out <- runEdgeR(se, group="group", comparisons=c("C", "A"), lfc.threshold=0.5, save.results=FALSE, output.dir=tmp)
+    out <- runEdgeR(se, group="group", comparisons=c("C", "A"), lfc.threshold=0.5, output.dir=tmp, save.results=FALSE, suppress.plots=TRUE)
 
     fname <- readLines(file.path(tmp, "report.Rmd"))
     expect_true(any(grepl("glmTreat\\(.*lfc=0.5", fname)))
@@ -81,7 +87,7 @@ test_that("runEdgeR works with log-fold changes", {
 
 test_that("runEdgeR works with custom subsetting", {
     tmp <- tempfile()
-    out <- runEdgeR(se, group="group", comparisons=c("C", "A"), subset.factor="batch", subset.levels=c("1","3","5"), output.dir=tmp)
+    out <- runEdgeR(se, group="group", comparisons=c("C", "A"), subset.factor="batch", subset.levels=c("1","3","5"), output.dir=tmp, suppress.plots=TRUE)
 
     # Subsetting works correctly.
     expect_lt(ncol(out$normalized), ncol(se))
@@ -94,7 +100,7 @@ test_that("runEdgeR works with custom subsetting", {
 test_that("runEdgeR works with more annotations", {
     tmp <- tempfile()
     rowData(se)$symbol <- sprintf("FOOBAR_%s", seq_len(nrow(se)))
-    out <- runEdgeR(se, group="group", comparisons=c("C", "A"), row.data="symbol", save.results=FALSE, output.dir=tmp)
+    out <- runEdgeR(se, group="group", comparisons=c("C", "A"), row.data="symbol", output.dir=tmp, save.results=FALSE, suppress.plots=TRUE)
 
     expect_identical(out$results[[1]]$symbol, rowData(se)$symbol)
     expect_type(out$results[[1]]$FDR, "double") # make sure we didn't wipe out the other columns.
@@ -104,7 +110,7 @@ test_that("runEdgeR works with more annotations", {
 
 test_that("runEdgeR works with custom metadata", {
     tmp <- tempfile()
-    out <- runEdgeR(se, group="group", comparisons=c("C", "A"), metadata=list(X=1, Y=TRUE), output.dir=tmp)
+    out <- runEdgeR(se, group="group", comparisons=c("C", "A"), metadata=list(X=1, Y=TRUE), output.dir=tmp, suppress.plots=TRUE)
 
     meta <- augere.core::readResult(file.path(tmp, "results", "de-1"))$metadata
     expect_identical(meta$X, 1L)
@@ -117,7 +123,7 @@ test_that("runEdgeR works with custom metadata", {
 
 test_that("runEdgeR works with some of the other edgeR-related options", {
     tmp <- tempfile()
-    out <- runEdgeR(se, group="group", comparisons=c("C", "A"), robust=FALSE, trend=FALSE, save.results=FALSE, output.dir=tmp)
+    out <- runEdgeR(se, group="group", comparisons=c("C", "A"), robust=FALSE, trend=FALSE, output.dir=tmp, save.results=FALSE, suppress.plots=TRUE)
 
     fname <- readLines(file.path(tmp, "report.Rmd"))
     expect_true(any(grepl("abundance.trend=FALSE", fname, fixed=TRUE)))
@@ -131,7 +137,7 @@ test_that("runEdgeR works with dry runs and no saving", {
     expect_true(file.exists(file.path(tmp, "report.Rmd")))
 
     tmp <- tempfile()
-    out <- runEdgeR(se, group="group", comparisons=c("C", "A"), save.results=FALSE, output.dir=tmp)
+    out <- runEdgeR(se, group="group", comparisons=c("C", "A"), output.dir=tmp, save.results=FALSE, suppress.plots=TRUE)
     expect_s4_class(out$normalized, "SummarizedExperiment")
     expect_s4_class(out$results[[1]], "DFrame")
     expect_false(file.exists(file.path(tmp, "results")))

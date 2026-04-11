@@ -30,7 +30,7 @@ summary(fit$df.prior)
 
 In practice, the QL dispersion estimates are squeezed towards a mean-dependent trend to accommodate non-NB mean-variance relationships.
 
-```{r, fig.cap='Mean-dependent trend in the QL dispersions. Each point represents its raw (black) or shrunken QL dispersion estimate (red) for each gene. Dispersions are quarter-root-transformed for clarity.'}
+```{r plot-ql-disp, fig.cap='Mean-dependent trend in the QL dispersions. Each point represents its raw (black) or shrunken QL dispersion estimate (red) for each gene. Dispersions are quarter-root-transformed for clarity.'}
 edgeR::plotQLDisp(fit)
 ```
 
@@ -102,11 +102,11 @@ We report summary statistics for this comparison, defining significant differenc
 summary(limma::decideTests(res))
 ```
 
-```{r, fig.cap='Mean-difference plot for this contrast. Each point represents a gene and is colored according to whether it was significantly up- or down-regulated at an FDR of 5%.', eval=is.null(dim(con)), echo=is.null(dim(con))}
+```{r plot-md-<%= CONTRAST_INDEX %>, fig.cap='Mean-difference plot for this contrast. Each point represents a gene and is colored according to whether it was significantly up- or down-regulated at an FDR of 5%.', eval=is.null(dim(con)), echo=is.null(dim(con))}
 limma::plotMD(res)
 ```
 
-```{r, fig.cap='Volcano plot for this contrast. Each point represents a gene, colored according to whether it was significantly up- or down-regulated at an FDR of 5%. The dotted line represents the effective $p$-value threshold for significance.', eval=is.null(dim(con)), echo=is.null(dim(con))}
+```{r plot-volcano-<%= CONTRAST_INDEX %>, fig.cap='Volcano plot for this contrast. Each point represents a gene, colored according to whether it was significantly up- or down-regulated at an FDR of 5%. The dotted line represents the effective $p$-value threshold for significance.', eval=is.null(dim(con)), echo=is.null(dim(con))}
 X <- tab$logFC
 Y <- -log10(tab$PValue)
 plot(X, Y, xlab='Log-fold change', ylab='-Log(PValue)')
