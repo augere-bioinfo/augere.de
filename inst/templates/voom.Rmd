@@ -1,41 +1,39 @@
 # Model fitting
 
-voom uses the empirical mean-variance trend to compute a weight for each observation. 
+`voom` uses the empirical mean-variance trend to compute a weight for each observation. 
 In this manner, log-CPMs derived from low counts are downweighted to reflect their lower precision.
-:BEGIN quality-text
-We estimate sample-specific quality weights to reduce the impact of outlier replicates without resorting to their removal.
-:END
-:BEGIN duplicate-correlation
-We use `duplicateCorrelation()` to account for correlations between samples with the same level of blocking factor.
+We use these weights to fit a linear model to the log-CPMs for each gene. 
 
-```{r duplicate-correlation, fig.wide=TRUE}
-library(limma)
-dc.block <- factor(SummarizedExperiment::colData(se)[[<%= DUPCOR_BLOCK %>]])
-
-# Iteratively refine the precision weights after estimating the correlation. 
-v <- limma::<%= VOOM_CMD %>(y, design=design, plot=FALSE)
-dc <- limma::duplicateCorrelation(v, design=design, block=dc.block)
-v <- limma::<%= VOOM_CMD %>(y, design=design, plot=TRUE, block=dc.block, 
-    correlation=dc$consensus.correlation)
-dc <- limma::duplicateCorrelation(v, design=design, block=dc.block)
-
-dc$consensus.correlation
-```
-:END
-
-:BEGIN voom
 ```{r voom}
 library(limma)
-v <- limma::<%= VOOM_CMD %>(y, design=design, plot=TRUE)
+:BEGIN duplicate-correlation-block
+dc.block <- factor(SummarizedExperiment::colData(se)[[<%= DUPCOR_BLOCK %>]])
+:END
+fit <- limma::voomLmFit(y, design=design<%= VOOM_ARGS %>, plot=TRUE)
+```
+
+:BEGIN quality-text
+We set `sample.weights=TRUE` to estimate a "quality weight" for each sample based on its residuals. 
+This reduces the impact of outlier replicates on the model fit without resorting to their removal.
+
+```{r qualweights}
+sw <- fit$targets$sample.weight
+names(sw) <- colnames(y)
+sw <- sort(sw)
+head(sw) # samples with smallest weights are least reliable
+tail(sw) # samples with largest weights are most reliable
 ```
 :END
 
-Once the precision weights are computed, we fit the linear model for each gene. 
+:BEGIN duplicate-correlation-text
+We set `block=` to account for correlations between samples assigned to the same block.
+Specifically, this reduces the contribution of multiple samples from the same block, as they are effectively redundant when the correlation is high.
+Blocking in this manner is a more flexible alternative to blocking directly in the design matrix, at the cost of some more liberal $p$-values.
 
-```{r}
-# 'v' stores 'design' so we don't have to pass it explicitly.
-fit <- limma::lmFit(v<%= LM_OPTS %>)
+```{r dupcor}
+fit$correlation
 ```
+:END
 
 Empirical Bayes shrinkage shares information across genes to stabilize the variance estimates.
 The estimated prior degrees of freedom (d.f.) represents the variability of the variances across genes, typically ranging from 5 to 20.
@@ -55,6 +53,9 @@ Ideally, there should be no trend at all as it should have been handled by the o
 ```{r plot-sa, fig.cap="Residual standard deviation (sigma) plotted against the mean log-CPM. Each point represents a gene<%= EXTRA_EB_CAPT %>."}
 limma::plotSA(fit)
 ```
+
+Note that the model fit will be recomputed for each contrast, so `fit` won't actually be used in the rest of this document.
+Its only purpose here is to generate the various diagnostics shown above, without repeating them for each individual contrast.
 
 # Performing contrasts
 
@@ -98,7 +99,7 @@ con
 For single contrasts, we can focus on genes with larger effect sizes by using `treat()` to test for significant differences from a log-fold change threshold.
 
 ```{r}
-fit2 <- limma::contrasts.fit(fit, con)
+fit2 <- limma::voomLmFit(y, design=design<%= VOOM_ARGS %>, contrasts=con)
 fit2 <- limma::treat(fit2, lfc=<%= LFC_THRESHOLD %><%= EB_OPTS %>)
 ```
 :END
@@ -107,7 +108,7 @@ fit2 <- limma::treat(fit2, lfc=<%= LFC_THRESHOLD %><%= EB_OPTS %>)
 We perform moderated $t$-tests to identify significant deviations from the null hypothesis.
 
 ```{r}
-fit2 <- limma::contrasts.fit(fit, con)
+fit2 <- limma::voomLmFit(y, design=design<%= VOOM_ARGS %>, contrasts=con)
 fit2 <- limma::eBayes(fit2<%= EB_OPTS %>)
 ```
 :END

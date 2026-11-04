@@ -127,20 +127,20 @@ runVoom <- function(
     template <- system.file("templates", "voom.Rmd", package="augere.de", mustWork=TRUE)
     parsed <- parseRmdTemplate(readLines(template))
     replacements <- list()
+    voom.args <- ""
 
     if (!is.null(dc.block)) {
         parsed[["voom"]] <- NULL
         replacements$DUPCOR_BLOCK <- deparseToString(dc.block)
-        replacements$LM_OPTS <- ", block=dc.block, correlation=dc$consensus.correlation"
+        voom.args <- c(voom.args, "block=dc.block")
     } else {
-        parsed[["duplicate-correlation"]] <- NULL
-        replacements$LM_OPTS <- ""
+        parsed[["duplicate-correlation-text"]] <- NULL
+        parsed[["duplicate-correlation-block"]] <- NULL
     }
 
     if (quality) {
-        replacements$VOOM_CMD <- "voomWithQualityWeights"
+        voom.args <- c(voom.args, "sample.weights=TRUE")
     } else {
-        replacements$VOOM_CMD <- "voom"
         parsed[["quality-text"]] <- NULL
     }
 
@@ -157,6 +157,7 @@ runVoom <- function(
         parsed[["robust-text"]] <- NULL
     }
 
+    replacements$VOOM_ARGS <- paste(voom.args, collapse=", ")
     replacements$EB_OPTS <- paste(eb.args, collapse=", ")
 
     merge.metadata <- !is.null(metadata)
@@ -183,6 +184,7 @@ runVoom <- function(
             copy[["lfc-contrast"]] <- replacePlaceholders(
                 copy[["lfc-contrast"]],
                 list(
+                    VOOM_ARGS=replacements$VOOM_ARGS,
                     EB_OPTS=replacements$EB_OPTS,
                     LFC_THRESHOLD=deparseToString(lfc.threshold)
                 )
@@ -216,6 +218,7 @@ runVoom <- function(
             copy,
             list(
                 AUTHOR=author.txt,
+                VOOM_ARGS=replacements$VOOM_ARGS,
                 EB_OPTS=replacements$EB_OPTS,
                 CONTRAST_NAME_SIMPLE=current$title,
                 CONTRAST_NAME_DEPARSED=deparseToString(current$title),

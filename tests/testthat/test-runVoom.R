@@ -38,9 +38,8 @@ test_that("runVoom works with vanilla settings", {
     # Check that the default options are set here.
     fname <- readLines(file.path(tmp, "report.Rmd"))
     expect_false(any(grepl("treat\\(.*lfc=0.5", fname)))
-    expect_true(any(grepl("voomWithQualityWeights(", fname, fixed=TRUE)))
-    expect_false(any(grepl("duplicateCorrelation(", fname, fixed=TRUE)))
-    expect_false(any(grepl("voom(", fname, fixed=TRUE)))
+    expect_true(any(grepl("sample.weights=TRUE", fname, fixed=TRUE)))
+    expect_false(any(grepl("block=dc.block", fname, fixed=TRUE)))
     expect_false(any(grepl("trend=TRUE", fname, fixed=TRUE)))
     expect_true(any(grepl("robust=TRUE", fname, fixed=TRUE)))
 })
@@ -127,7 +126,7 @@ test_that("runVoom works with duplicateCorrelation", {
     out <- runVoom(se, group="group", comparisons=c("C", "A"), dc.block="batch", output.dir=tmp, suppress.plots=TRUE, save.results=FALSE)
 
     fname <- readLines(file.path(tmp, "report.Rmd"))
-    expect_true(any(grepl("duplicateCorrelation(", fname, fixed=TRUE)))
+    expect_true(any(grepl("block=dc.block", fname, fixed=TRUE)))
 })
 
 test_that("runVoom works with some of the other voom-related options", {
@@ -135,8 +134,7 @@ test_that("runVoom works with some of the other voom-related options", {
     out <- runVoom(se, group="group", comparisons=c("C", "A"), robust=FALSE, trend=TRUE, quality=FALSE, output.dir=tmp, suppress.plots=TRUE, save.results=FALSE)
 
     fname <- readLines(file.path(tmp, "report.Rmd"))
-    expect_false(any(grepl("voomWithQualityWeights(", fname, fixed=TRUE)))
-    expect_true(any(grepl("voom(", fname, fixed=TRUE)))
+    expect_false(any(grepl("sample.weights=TRUE", fname, fixed=TRUE)))
     expect_true(any(grepl("trend=TRUE", fname, fixed=TRUE)))
     expect_false(any(grepl("robust=TRUE", fname, fixed=TRUE)))
 })

@@ -84,7 +84,7 @@ The assumption is that most genes not exhibit any differences between samples;
 any systematic differences across many genes are assumed to be technical and removed.
 
 ```{r}
-y <- edgeR::calcNormFactors(y)
+y <- edgeR::normLibSizes(y)
 head(y$samples, 10)
 ```
 
