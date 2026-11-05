@@ -1,5 +1,5 @@
 Package: augere.de
-Version: 0.99.3
+Version: 0.99.4
 Date: 2026-11-05
 Title: Automatic Generation of Differential Expression Analyses
 Description:
@@ -24,7 +24,6 @@ Suggests:
     airway,
     SummarizedExperiment
 VignetteBuilder: knitr    
-RoxygenNote: 7.3.3
 Encoding: UTF-8
 URL: https://github.com/augere-bioinfo/augere.de
 BugReports: https://github.com/augere-bioinfo/augere.de/issues
@@ -33,3 +32,4 @@ biocViews:
     ReportWriting,
     DifferentialExpression,
     Transcription
+Config/roxygen2/version: 8.1.1

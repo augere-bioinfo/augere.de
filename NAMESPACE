@@ -13,10 +13,14 @@ export(runVoom)
 export(wrapInput)
 import(augere.core)
 import(methods)
-importFrom(augere.core,readResult)
-importFrom(augere.core,wrapInput)
+importFrom(augere.core,
+  readResult,
+  wrapInput
+)
 importFrom(edgeR,glmQLFit)
 importFrom(limma,voom)
-importFrom(utils,data)
-importFrom(utils,head)
+importFrom(utils,
+  data,
+  head
+)
 importMethodsFrom(alabaster.se,saveObject)
