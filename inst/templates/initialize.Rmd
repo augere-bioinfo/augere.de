@@ -73,11 +73,11 @@ summary(filtered)
 y <- y[filtered,]
 ```
 
-The minimum threshold is defined as a CPM equivalent to a count of 10, adjusted for differences in library size.
+The minimum threshold is defined as the counts-per-million (CPM) equivalent to a count of 10, adjusted for differences in library size.
 $n$ is defined as 70% of the size of the smallest group in the experimental design.
 (We set `large.n=0` to allow a gene to be below the threshold in some of the samples of a small group.) 
 
-# Normalization
+# Normalization {.tabset}
 
 We use the trimmed mean of M-values (TMM) algorithm to normalize scaling biases between samples.
 The assumption is that most genes not exhibit any differences between samples; 
@@ -95,22 +95,29 @@ resulting in slightly incorrect log-fold changes and/or spurious DE.
 which represent the combined effect of library size differences and composition biases.
 
 ```{r plot-norm-factors}
-barplot(y$samples$norm.factors)
+nf <- y$samples$norm.factors
+names(nf) <- colnames(y)
+nf <- sort(nf)
+head(nf) # samples with lowest factors have more upregulated genes
+tail(nf) # samples with highest factors have fewer upregulated genes
 ```
 
-We inspect the normalization results by creating MD (mean-difference) plots.
+We inspect the normalization results by creating MD (mean-difference) plots from the log-CPM values.
 Ideally, the log-fold changes for most genes should be centered around zero if the normalization was successful.
+We set `prior.count=3` to avoid large log-differences at low or zero counts.
 
-```{r plot-md-norm, fig.wide=TRUE, fig.asp=1/3, fig.cap="Mean-difference plots for each sample against the average reference of all other samples. Each plot corresponds to a sample while each point represents a gene."}
+:BEGIN md-plots
+```{r plot-md-norm, results="asis"}
 y.cpm <- edgeR::cpm(y, log=TRUE, prior.count=3)
 
 # Avoid creating too many plots, otherwise the compiled report is too big.
-par(mfrow=c(1, 3), mar=c(5.1, 4.1, 4.1, 0.1))
 for (i in seq_len(min(9, ncol(y.cpm)))) {
+    cat(paste0("\n\n## ", i, " {-}\n"))
     limma::plotMD(y.cpm, column=i)
     abline(h=0, col='red', lty=2)
 }
 ```
+:END
 
 # Dimensionality reduction
 

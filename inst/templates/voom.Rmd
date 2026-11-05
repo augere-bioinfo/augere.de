@@ -4,7 +4,7 @@
 In this manner, log-CPMs derived from low counts are downweighted to reflect their lower precision.
 We use these weights to fit a linear model to the log-CPMs for each gene. 
 
-```{r voom}
+```{r voom, fig.cap="Square root of the standard deviation against the mean log-CPM, where each dot represents a gene. The fitted trend is used to estimate observation-level precision weights."}
 library(limma)
 :BEGIN duplicate-correlation-block
 dc.block <- factor(SummarizedExperiment::colData(se)[[<%= DUPCOR_BLOCK %>]])

@@ -260,8 +260,12 @@ runVoom <- function(
         )
     }
 
+    # Strip out unnecessary cat calls due to the tabset.
+    reparsed <- readLines(fname)
+    reparsed <- sub("^    cat\\(", "    list\\(", reparsed)
+
     env <- new.env()
-    compileReport(fname, env=env, skip.chunks=skip.chunks, suppress.plots=suppress.plots)
+    compileReport(fname, env=env, skip.chunks=skip.chunks, contents=reparsed, suppress.plots=suppress.plots)
 
     list(results=env$all.results, normalized=env$norm.se)
 }
