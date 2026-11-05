@@ -37,7 +37,7 @@ test_that("runEdgeR works with vanilla settings", {
 
     # Check that the default options are set here.
     fname <- readLines(file.path(tmp, "report.Rmd"))
-    expect_false(any(grepl("glmTreat\\(.*lfc=0.5", fname)))
+    expect_false(any(grepl("glmQLFTest\\(.*lfc=", fname)))
     expect_true(any(grepl("glmQLFTest\\(", fname)))
     expect_false(any(grepl("abundance.trend=FALSE", fname, fixed=TRUE)))
     expect_true(any(grepl("robust=TRUE", fname, fixed=TRUE)))
@@ -81,8 +81,9 @@ test_that("runEdgeR works with log-fold changes", {
     out <- runEdgeR(se, group="group", comparisons=c("C", "A"), lfc.threshold=0.5, output.dir=tmp, save.results=FALSE, suppress.plots=TRUE)
 
     fname <- readLines(file.path(tmp, "report.Rmd"))
-    expect_true(any(grepl("glmTreat\\(.*lfc=0.5", fname)))
-    expect_false(any(grepl("glmQLFTest\\(", fname)))
+    has.lfc <- grepl("glmQLFTest\\(.*lfc=", fname)
+    expect_true(any(has.lfc))
+    expect_false(any(grepl("glmQLFTest\\(", fname) & !has.lfc)) # all mentions of glMQLFTest have an lfc= specification.
 })
 
 test_that("runEdgeR works with custom subsetting", {
@@ -128,6 +129,13 @@ test_that("runEdgeR works with some of the other edgeR-related options", {
     fname <- readLines(file.path(tmp, "report.Rmd"))
     expect_true(any(grepl("abundance.trend=FALSE", fname, fixed=TRUE)))
     expect_false(any(grepl("robust=TRUE", fname, fixed=TRUE)))
+
+    # Also trying with the new quality weights.
+    tmp <- tempfile()
+    out <- runEdgeR(se, group="group", comparisons=c("C", "A"), quality=TRUE, output.dir=tmp, save.results=FALSE, suppress.plots=TRUE)
+
+    fname <- readLines(file.path(tmp, "report.Rmd"))
+    expect_true(any(grepl("edgeR::sampleWeights", fname, fixed=TRUE)))
 })
 
 test_that("runEdgeR works with dry runs and no saving", {

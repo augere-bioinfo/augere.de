@@ -17,6 +17,7 @@ runEdgeR(
   contrasts = NULL,
   robust = TRUE,
   trend = TRUE,
+  quality = FALSE,
   lfc.threshold = 0,
   assay = 1,
   row.data = NULL,
@@ -70,6 +71,9 @@ Setting this to \code{TRUE} sacrifices some precision for improved robustness ag
 
 \item{trend}{Boolean indicating whether to shrink the QL dispersions towards a trend fitted to the mean in \code{\link[edgeR]{glmQLFit}}.
 Setting this to \code{TRUE} allows the analysis to adapt to difference mean-variance relationships, at the cost of some extra computational work.}
+
+\item{quality}{Boolean indicating whether to compute sample-specific quality weights with \code{\link[edgeR]{sampleWeights}}.
+Setting this to \code{TRUE} allows low-quality outlier samples to be downweighted in \code{\link[edgeR]{glmQLFit}}.}
 
 \item{lfc.threshold}{Number specifying a log-fold change threshold for \code{\link[edgeR]{glmTreat}}.
 If zero, \code{\link[edgeR]{glmQLFTest}} is used instead.

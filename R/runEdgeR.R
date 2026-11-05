@@ -28,6 +28,8 @@
 #' Also ignored if \code{covariates} is provided, as all samples are informative for a continuous covariate.
 #' @param robust Boolean indicating whether robust empirical Bayes shrinkage should be used in \code{\link[edgeR]{glmQLFit}}.
 #' Setting this to \code{TRUE} sacrifices some precision for improved robustness against genes with extreme dispersions.
+#' @param quality Boolean indicating whether to compute sample-specific quality weights with \code{\link[edgeR]{sampleWeights}}.
+#' Setting this to \code{TRUE} allows low-quality outlier samples to be downweighted in \code{\link[edgeR]{glmQLFit}}.
 #' @param trend Boolean indicating whether to shrink the QL dispersions towards a trend fitted to the mean in \code{\link[edgeR]{glmQLFit}}.
 #' Setting this to \code{TRUE} allows the analysis to adapt to difference mean-variance relationships, at the cost of some extra computational work.
 #' @param lfc.threshold Number specifying a log-fold change threshold for \code{\link[edgeR]{glmTreat}}.
@@ -113,6 +115,7 @@ runEdgeR <- function(
     contrasts = NULL,
     robust = TRUE,
     trend = TRUE,
+    quality = FALSE,
     lfc.threshold = 0,
     assay = 1,
     row.data = NULL,
@@ -161,6 +164,12 @@ runEdgeR <- function(
         replacements$QL_OPTS <- ""
         parsed[["robust-eb-text"]] <- NULL
     }
+
+    if (!quality) {
+        parsed[["quality-code"]] <- NULL
+        parsed[["quality-text"]] <- NULL
+    }
+
     if (!trend) {
         replacements$QL_OPTS <- paste0(replacements$QL_OPTS, ", abundance.trend=FALSE")
     }

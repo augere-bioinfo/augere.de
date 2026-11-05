@@ -5,6 +5,10 @@ The GLM coefficients quantify the contribution of the model factors for each gen
 
 ```{r}
 fit <- edgeR::glmQLFit(y, design<%= QL_OPTS %>)
+:BEGIN quality-code
+y$weights <- edgeR::sampleWeights(fit)
+fit <- edgeR::glmQLFit(y, design<%= QL_OPTS %>)
+:END
 ```
 
 Specifically, there are two sets of dispersion parameters - the negative binomial (NB) and the QL dispersions.
@@ -33,6 +37,19 @@ In practice, the QL dispersion estimates are squeezed towards a mean-dependent t
 ```{r plot-ql-disp, fig.cap='Mean-dependent trend in the QL dispersions. Each point represents its raw (black) or shrunken QL dispersion estimate (red) for each gene. Dispersions are quarter-root-transformed for clarity.'}
 edgeR::plotQLDisp(fit)
 ```
+
+:BEGIN quality-text
+We also estimate a "quality weight" for each sample based on its residuals. 
+This reduces the impact of outlier replicates on the model fit without resorting to their removal.
+
+```{r}
+sw <- y$weights[1,]
+names(sw) <- colnames(y)
+sw <- sort(sw)
+head(sw) # samples with smallest weights are least reliable
+tail(sw) # samples with largest weights are most reliable
+```
+:END
 
 # Performing contrasts
 
@@ -73,11 +90,11 @@ con
 ```
 
 :BEGIN treat
-We use `glmTreat()` to identify genes where the magnitude of the log-fold change is significantly greater than some threshold.
+We perform a QL F-test identify genes where the magnitude of the log-fold change is significantly greater than some threshold.
 This focuses on genes with larger effect sizes at the expense of those with low variability.
 
 ```{r}
-res <- edgeR::glmTreat(fit, contrast=con, lfc=<%= THRESHOLD %>)
+res <- edgeR::glmQLFTest(fit, contrast=con, lfc=<%= THRESHOLD %>)
 ```
 :END
 
