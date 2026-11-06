@@ -80,7 +80,7 @@ $n$ is defined as 70% of the size of the smallest group in the experimental desi
 # Normalization {.tabset}
 
 We use the trimmed mean of M-values (TMM) algorithm to normalize scaling biases between samples.
-The assumption is that most genes not exhibit any differences between samples; 
+The assumption is that most genes do not exhibit any differences between samples; 
 any systematic differences across many genes are assumed to be technical and removed.
 
 ```{r}
@@ -88,10 +88,10 @@ y <- edgeR::normLibSizes(y)
 head(y$samples, 10)
 ```
 
-The TMM normalization factors go beyond library size normalization by accounting for composition biases.
-These biases are introduced by differential expression where upregulated genes outcompete others for sequencing resources,
-resulting in slightly incorrect log-fold changes and/or spurious DE. 
-`r BiocStyle::Biocpkg("edgeR")` handles this by computing effective library sizes (scaled by `norm.factors`),
+The TMM normalization factors account for composition biases that are not reflected in the relative library sizes.
+Specifically, composition biases are introduced when upregulation of some genes in one sample reduces the sequencing resources available for other genes.
+This shifts the log-fold changes and causes spurious DE when that sample is compared to other samples with less upregulation.
+`r BiocStyle::Biocpkg("edgeR")` handles this by computing effective library sizes (`lib.size` scaled by `norm.factors`),
 which represent the combined effect of library size differences and composition biases.
 
 ```{r plot-norm-factors}

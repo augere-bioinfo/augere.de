@@ -151,7 +151,7 @@ runEdgeR <- function(
         contrasts=contrasts,
         author=author
     )
-    writeRmd(common.start$text, file=fname)
+    writeRmd(common.start$text, file=fname, trailing.empty=TRUE)
     contrast.info <- common.start$contrasts
 
     template <- system.file("templates", "edgeR.Rmd", package="augere.de", mustWork=TRUE)
@@ -240,7 +240,7 @@ runEdgeR <- function(
 
     parsed$contrast <- contrasts
     parsed <- replacePlaceholders(parsed, replacements)
-    writeRmd(parsed, file=fname, append=TRUE)
+    writeRmd(parsed, file=fname, append=TRUE, trailing.empty=TRUE)
 
     finish <- .finalize(assay, author, merge.metadata=merge.metadata, subset.metadata=!is.null(subset.factor))
     writeRmd(finish, file=fname, append=TRUE)
@@ -264,12 +264,8 @@ runEdgeR <- function(
         )
     }
 
-    # Strip out unnecessary cat calls due to the tabset.
-    reparsed <- readLines(fname)
-    reparsed <- sub("^    cat\\(", "    list\\(", reparsed)
-
     env <- new.env()
-    compileReport(fname, env=env, skip.chunks=skip.chunks, contents=reparsed, suppress.plots=suppress.plots)
+    compileReport(fname, env=env, skip.chunks=skip.chunks, suppress.plots=suppress.plots, suppress.output=TRUE)
 
     list(results=env$all.results, normalized=env$norm.se)
 }
